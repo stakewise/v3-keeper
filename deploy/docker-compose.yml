@@ -1,0 +1,21 @@
+version: "3.9"
+
+volumes:
+  operator_postgres:
+    driver: local
+
+services:
+  # keeper services
+  keeper:
+    build:
+      context: ..
+      dockerfile: ./Dockerfile
+    image: keeper
+    container_name: keeper
+    restart: always
+    volumes:
+      - ..:/app
+    env_file:
+      - .env
+    entrypoint: [ "python" ]
+    command: [ "./src/main.py" ]

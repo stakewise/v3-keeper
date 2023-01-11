@@ -4,6 +4,7 @@ import logging
 from sw_utils import InterruptHandler
 
 from src.config.settings import LOG_LEVEL, NETWORK, NETWORK_CONFIG, SENTRY_DSN
+from src.oracles import process_votes
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -16,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
-    # start operator tasks
     interrupt_handler = InterruptHandler()
 
     while not interrupt_handler.exit:
+        await process_votes()
         await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
 
 
