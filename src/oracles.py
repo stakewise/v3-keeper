@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from urllib.parse import urljoin
 
 import aiohttp
 from eth_typing import ChecksumAddress
@@ -17,6 +18,8 @@ from src.execution import (
 from src.typings import RewardVote
 
 logger = logging.getLogger(__name__)
+
+REWARD_VOTE_URL_PATH = '/'
 
 
 async def process_votes():
@@ -85,10 +88,7 @@ async def fetch_reward_votes(oracles: dict[ChecksumAddress, str]) -> list[Reward
     votes: list[RewardVote] = []
     async with aiohttp.ClientSession() as session:
         for address, endpoint in oracles.items():
-            async with session.get(url=endpoint) as response:
-                response.raise_for_status()
-                data = await response.json()
-
+            data = await _aiohttp_fetch(session, url=urljoin(endpoint, REWARD_VOTE_URL_PATH))
             votes.append(
                 RewardVote(
                     oracle_address=address,
@@ -104,3 +104,10 @@ async def fetch_reward_votes(oracles: dict[ChecksumAddress, str]) -> list[Reward
 
 async def can_submit(signatures_count: int, threshold) -> bool:
     return signatures_count >= threshold
+
+
+async def _aiohttp_fetch(session, url):
+    async with session.get(url=url) as response:
+        response.raise_for_status()
+        data = await response.json()
+    return data
