@@ -46,7 +46,7 @@ async def process_votes():
         return
 
     votes = await fetch_reward_votes(oracles)
-    votes = [vote for vote in votes if vote.update_timestamp > update_timestamp_boundary]
+    votes = [vote for vote in votes if vote.update_timestamp >= update_timestamp_boundary]
 
     counter = Counter(
         [
@@ -61,17 +61,17 @@ async def process_votes():
     most_voted = counter.most_common(1)
     threshold = await get_oracles_threshold()
     if not can_submit(most_voted[0][1], threshold):
-        logger.error('Oracle votes mismatch, skipping...')
+        logger.error('Not enough oracle votes, skipping update...')
         return
     root, ipfs_hash = most_voted[0][0]
     logger.info(
-        'Submitting rewards update: rewards ipfs hash= %s at %s',
+        'Submitting rewards update: rewards ipfs hash=%s at %s',
         ipfs_hash,
         update_timestamp,
     )
 
     signatures = b''
-    for vote in sorted(votes, key=lambda x: x.oracle_address):
+    for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
         if vote.root == root:
             signatures += vote.signature
 

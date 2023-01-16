@@ -35,8 +35,7 @@ disable = ["C0103", "C0114", "C0115", "C0116", "R0801", "R0902", "R0903", "R0914
 good-names = ["db", "i", "el", "e", "w", "f", "w3"]
 
 [tool.flake8]
-max-line-length = 100
-select = ["E121"]
+extend-ignore = ["E203", "E501"]  # line length will be checked by pylint
 
 [tool.mypy]
 ignore_missing_imports = true

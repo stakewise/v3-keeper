@@ -1,9 +1,5 @@
 version: "3.9"
 
-volumes:
-  operator_postgres:
-    driver: local
-
 services:
   # keeper services
   keeper:
