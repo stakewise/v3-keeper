@@ -60,7 +60,7 @@ async def process_votes():
 
     most_voted = counter.most_common(1)
     threshold = await get_oracles_threshold()
-    if not can_submit(most_voted[0][1], threshold):
+    if not await can_submit(most_voted[0][1], threshold):
         logger.error('Not enough oracle votes, skipping update...')
         return
     root, ipfs_hash = most_voted[0][0]
