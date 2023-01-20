@@ -23,7 +23,6 @@ class NetworkConfig:
     KEEPER_GENESIS_BLOCK: BlockNumber
     KEEPER_GENESIS_TIMESTAMP: Timestamp
     ORACLES_CONTRACT_ADDRESS: ChecksumAddress
-    DAO_ENS_ORACLES_KEY: str
     SYNC_PERIOD: int
     SECONDS_PER_BLOCK: Decimal
     CONFIRMATION_BLOCKS: int
@@ -39,7 +38,6 @@ NETWORKS = {
         KEEPER_GENESIS_BLOCK=BlockNumber(0),
         KEEPER_GENESIS_TIMESTAMP=Timestamp(0),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        DAO_ENS_ORACLES_KEY='eth_oracles_config',
         SYNC_PERIOD=int(timedelta(days=1).total_seconds()),
         SECONDS_PER_BLOCK=Decimal(12),
         CONFIRMATION_BLOCKS=64,
@@ -47,13 +45,16 @@ NETWORKS = {
         IS_POA=False,
     ),
     GOERLI: NetworkConfig(
-        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        KEEPER_GENESIS_BLOCK=BlockNumber(0),
-        KEEPER_GENESIS_TIMESTAMP=Timestamp(0),
-        ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
+        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xd5255D69e3cD2378C9dcc787fCCc2724D838fFEE'
+        ),
+        KEEPER_GENESIS_BLOCK=BlockNumber(8265637),
+        KEEPER_GENESIS_TIMESTAMP=Timestamp(1673002248),
+        ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x1703B25658e0A97ee70DF8Ce2aD146f5a7700D31'
+        ),
         GENESIS_TIMESTAMP=Timestamp(1616508000),
         GENESIS_FORK_VERSION=Web3.to_bytes(hexstr=HexStr('0x00001020')),
-        DAO_ENS_ORACLES_KEY='eth_oracles_config',
         SYNC_PERIOD=int(timedelta(hours=1).total_seconds()),
         SECONDS_PER_BLOCK=Decimal(12),
         CONFIRMATION_BLOCKS=64,
@@ -67,7 +68,6 @@ NETWORKS = {
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         GENESIS_TIMESTAMP=Timestamp(1638993340),
         GENESIS_FORK_VERSION=Web3.to_bytes(hexstr=HexStr('0x00000064')),
-        DAO_ENS_ORACLES_KEY='gno_oracles_config',
         SYNC_PERIOD=int(timedelta(days=1).total_seconds()),
         SECONDS_PER_BLOCK=Decimal('6.8'),
         CONFIRMATION_BLOCKS=24,
