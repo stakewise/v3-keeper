@@ -24,5 +24,7 @@ IPFS_FETCH_ENDPOINTS = config(
     'https://gateway.pinata.cloud,https://ipfs.io',
 )
 
+DEFAULT_RETRY_TIME = 30
+
 # sentry config
 SENTRY_DSN = config('SENTRY_DSN', default='')
