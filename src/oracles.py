@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections import Counter
 from urllib.parse import urljoin
@@ -46,6 +47,10 @@ async def process_votes():
         return
 
     votes = await fetch_reward_votes(oracles)
+    if not votes:
+        logger.warning('No active votes')
+        return
+
     votes = [vote for vote in votes if vote.update_timestamp >= update_timestamp_boundary]
 
     counter = Counter(
@@ -85,20 +90,26 @@ async def process_votes():
 
 
 async def fetch_reward_votes(oracles: dict[ChecksumAddress, str]) -> list[RewardVote]:
-    votes: list[RewardVote] = []
     async with aiohttp.ClientSession() as session:
-        for address, endpoint in oracles.items():
-            data = await _aiohttp_fetch(session, url=urljoin(endpoint, REWARD_VOTE_URL_PATH))
-            votes.append(
-                RewardVote(
-                    oracle_address=address,
-                    nonce=data['nonce'],
-                    update_timestamp=Timestamp(data['update_timestamp']),
-                    signature=Web3.to_bytes(hexstr=data['signature']),
-                    root=data['root'],
-                    ipfs_hash=data['ipfs_hash'],
+        results = await asyncio.gather(
+            *[
+                _fetch_vote(
+                    session=session, url=urljoin(endpoint, REWARD_VOTE_URL_PATH), account=account
                 )
-            )
+                for account, endpoint in oracles.items()
+            ],
+            return_exceptions=True
+        )
+
+    votes: list[RewardVote] = []
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.error(result)
+            continue
+
+        if result:
+            votes.append(result)
+
     return votes
 
 
@@ -106,7 +117,32 @@ async def can_submit(signatures_count: int, threshold) -> bool:
     return signatures_count >= threshold
 
 
-async def _aiohttp_fetch(session, url):
+async def _fetch_vote(session, url, account) -> RewardVote | None:
+    data = await _aiohttp_fetch(session, url)
+
+    if not data:
+        logger.warning('Empty response from oracle', extra={'oracle': account, 'response': data})
+        return None
+
+    for key in ['nonce', 'update_timestamp', 'signature', 'root', 'ipfs_hash']:
+        if key not in data.keys():
+            logger.error(
+                'Invalid response from oracle', extra={'oracle': account, 'response': data}
+            )
+            return None
+
+    vote = RewardVote(
+        oracle_address=account,
+        nonce=data['nonce'],
+        update_timestamp=Timestamp(data['update_timestamp']),
+        signature=Web3.to_bytes(hexstr=data['signature']),
+        root=data['root'],
+        ipfs_hash=data['ipfs_hash'],
+    )
+    return vote
+
+
+async def _aiohttp_fetch(session, url) -> dict:
     async with session.get(url=url) as response:
         response.raise_for_status()
         data = await response.json()
