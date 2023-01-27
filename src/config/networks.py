@@ -46,12 +46,12 @@ NETWORKS = {
     ),
     GOERLI: NetworkConfig(
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xd5255D69e3cD2378C9dcc787fCCc2724D838fFEE'
+            '0x74c6D9bBfbE85DD8dA269638144036b4B1440d66'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(8265637),
-        KEEPER_GENESIS_TIMESTAMP=Timestamp(1673002248),
+        KEEPER_GENESIS_BLOCK=BlockNumber(8368603),
+        KEEPER_GENESIS_TIMESTAMP=Timestamp(1674573288),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x1703B25658e0A97ee70DF8Ce2aD146f5a7700D31'
+            '0xb1A899f03a7F68C81f0d80fD2162214B8562E3e2'
         ),
         GENESIS_TIMESTAMP=Timestamp(1616508000),
         GENESIS_FORK_VERSION=Web3.to_bytes(hexstr=HexStr('0x00001020')),
