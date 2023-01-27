@@ -48,8 +48,8 @@ NETWORKS = {
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0x74c6D9bBfbE85DD8dA269638144036b4B1440d66'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(8368604),
-        KEEPER_GENESIS_TIMESTAMP=Timestamp(1674573300),
+        KEEPER_GENESIS_BLOCK=BlockNumber(8368603),
+        KEEPER_GENESIS_TIMESTAMP=Timestamp(1674573288),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xb1A899f03a7F68C81f0d80fD2162214B8562E3e2'
         ),
