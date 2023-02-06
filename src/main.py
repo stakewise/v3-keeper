@@ -5,6 +5,7 @@ from sw_utils import InterruptHandler
 
 from src.config.settings import LOG_LEVEL, NETWORK, NETWORK_CONFIG, SENTRY_DSN
 from src.oracles import process_votes
+from src.startup_check import startup_checks
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    await startup_checks()
     interrupt_handler = InterruptHandler()
 
     while not interrupt_handler.exit:
