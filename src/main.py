@@ -3,6 +3,7 @@ import logging
 
 from sw_utils import InterruptHandler
 
+import src
 from src.config.settings import LOG_LEVEL, NETWORK, NETWORK_CONFIG, SENTRY_DSN
 from src.oracles import process_votes
 from src.startup_check import startup_checks
@@ -17,8 +18,15 @@ logging.getLogger('backoff').addHandler(logging.StreamHandler())
 logger = logging.getLogger(__name__)
 
 
+def log_start() -> None:
+    logger.info('Starting keeper service, version %s', src.__version__)
+
+
 async def main() -> None:
+    log_start()
+
     await startup_checks()
+
     interrupt_handler = InterruptHandler()
 
     while not interrupt_handler.exit:
