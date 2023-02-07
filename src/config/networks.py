@@ -5,7 +5,7 @@ from decimal import Decimal
 from ens.constants import EMPTY_ADDR_HEX
 from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from web3 import Web3
-from web3.types import Timestamp
+from web3.types import Timestamp, Wei
 
 MAINNET = 'mainnet'
 GOERLI = 'goerli'
@@ -17,6 +17,7 @@ GNO_NETWORKS = [GNOSIS]
 
 @dataclass
 class NetworkConfig:
+    SYMBOL: str
     GENESIS_TIMESTAMP: Timestamp
     GENESIS_FORK_VERSION: bytes
     KEEPER_CONTRACT_ADDRESS: ChecksumAddress
@@ -28,10 +29,12 @@ class NetworkConfig:
     CONFIRMATION_BLOCKS: int
     CHAIN_ID: int
     IS_POA: bool
+    KEEPER_MIN_BALANCE: Wei
 
 
 NETWORKS = {
     MAINNET: NetworkConfig(
+        SYMBOL='ETH',
         GENESIS_TIMESTAMP=Timestamp(1606824023),
         GENESIS_FORK_VERSION=Web3.to_bytes(hexstr=HexStr('0x00000000')),
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
@@ -43,8 +46,10 @@ NETWORKS = {
         CONFIRMATION_BLOCKS=64,
         CHAIN_ID=1,
         IS_POA=False,
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
     GOERLI: NetworkConfig(
+        SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0x74c6D9bBfbE85DD8dA269638144036b4B1440d66'
         ),
@@ -60,8 +65,10 @@ NETWORKS = {
         CONFIRMATION_BLOCKS=64,
         CHAIN_ID=5,
         IS_POA=True,
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
     GNOSIS: NetworkConfig(
+        SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         KEEPER_GENESIS_BLOCK=BlockNumber(0),
         KEEPER_GENESIS_TIMESTAMP=Timestamp(0),
@@ -73,5 +80,6 @@ NETWORKS = {
         CONFIRMATION_BLOCKS=24,
         CHAIN_ID=100,
         IS_POA=False,
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
 }
