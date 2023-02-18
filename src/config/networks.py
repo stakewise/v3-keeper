@@ -36,10 +36,10 @@ NETWORKS = {
     GOERLI: NetworkConfig(
         SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x83A7efE3895E6B90F65d1B796ba69D04C269E7aB'
+            '0x1833E7Ba555A6abc99B8299e662AfEec88167805'
         ),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x4fA883CDB29c3D25A81e6290569eB449AaecAAE6'
+            '0xDF43F5dBB585C6b38AeC413685aa67CD1dD47091'
         ),
         SECONDS_PER_BLOCK=Decimal(12),
         IS_POA=True,
