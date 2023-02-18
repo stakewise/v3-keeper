@@ -58,14 +58,19 @@ async def process_votes() -> None:
         update_timestamp,
     )
 
+    signatures_count = 0
     signatures = b''
     for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
+        if signatures_count >= threshold:
+            break
+
         if (vote.root, vote.ipfs_hash, vote.update_timestamp) == (
             root,
             ipfs_hash,
             update_timestamp,
         ):
             signatures += vote.signature
+            signatures_count += 1
 
     await submit_vote(
         rewards_root=root,
