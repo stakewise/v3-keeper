@@ -20,8 +20,8 @@ IPFS_FETCH_ENDPOINTS = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
     default='https://stakewise.infura-ipfs.io/,'
-    'http://cloudflare-ipfs.com,'
-    'https://gateway.pinata.cloud,https://ipfs.io',
+            'http://cloudflare-ipfs.com,'
+            'https://gateway.pinata.cloud,https://ipfs.io',
 )
 
 DEFAULT_RETRY_TIME = 30
