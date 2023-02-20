@@ -1,10 +1,10 @@
 import logging
 
 import backoff
-from eth_typing import BlockNumber, ChecksumAddress, HexStr
+from eth_typing import ChecksumAddress, HexStr
 from sw_utils.typings import Bytes32
 from web3 import Web3
-from web3.types import BlockData, EventData, Timestamp, Wei
+from web3.types import Timestamp, Wei
 
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
@@ -14,36 +14,24 @@ from src.typings import RewardsRootUpdateParams
 
 logger = logging.getLogger(__name__)
 
-
 SECONDS_PER_MONTH: int = 2628000
 APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_latest_block() -> BlockData:
-    """Fetches the latest block."""
-    block_number = await execution_client.eth.get_block_number()  # type: ignore
-    return await execution_client.eth.get_block(block_number)  # type: ignore
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_last_rewards_update(block_number: BlockNumber) -> Timestamp | None:
-    events = await keeper_contract.events.RewardsRootUpdated.get_logs(
-        from_block=max(
-            int(NETWORK_CONFIG.KEEPER_GENESIS_BLOCK), block_number - APPROX_BLOCKS_PER_MONTH, 0
-        ),
-        to_block=block_number,
-    )
-    if not events:
-        return None
-
-    last_event: EventData = events[-1]
-    return Timestamp((last_event['args']['updateTimestamp']))
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def get_oracles_threshold() -> int:
     return await oracles_contract.functions.requiredOracles().call()
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+async def get_keeper_rewards_nonce() -> int:
+    return await keeper_contract.functions.rewardsNonce().call()
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+async def can_update_rewards() -> bool:
+    """Checks whether keeper allows next update."""
+    return await keeper_contract.functions.canUpdateRewards().call()
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
@@ -65,10 +53,10 @@ async def get_oracles() -> dict[ChecksumAddress, str]:
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def submit_vote(
-    rewards_root: HexStr | Bytes32,
-    update_timestamp: Timestamp,
-    rewards_ipfs_hash: str,
-    signatures: bytes,
+        rewards_root: HexStr | Bytes32,
+        update_timestamp: Timestamp,
+        rewards_ipfs_hash: str,
+        signatures: bytes,
 ) -> None:
     tx_data_params = RewardsRootUpdateParams(
         rewardsRoot=rewards_root,
@@ -89,7 +77,7 @@ async def submit_vote(
     )  # type: ignore
 
 
-@backoff.on_exception(backoff.expo, Exception, max_time=300)
+@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def get_keeper_balance() -> Wei:
     return await execution_client.eth.get_balance(keeper_account.address)  # type: ignore
 
