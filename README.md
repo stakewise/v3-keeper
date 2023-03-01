@@ -71,7 +71,7 @@ Build requirements:
 Install dependencies and start keeper processes:
 ```sh
 poetry install --no-dev
-python src/main.py
+PYTHONPATH="." python src/main.py
 ```
 
 # Contacts
