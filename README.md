@@ -49,18 +49,10 @@ Copy [.env.example](./.env.example) file to `.env` file and fill it with correct
 ### Step 3. Deploy keeper
 
 #### Option 1. Use Docker image
-
-Build Docker image or pull the existing one
-from [here](https://europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper):
+Pull Docker image from [here](https://europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper) and start the container with the following command:
 
 ```sh
-docker build --pull -t stakewiselabs/v3-keeper .
-```
-
-Start the container with the following command:
-
-```sh
-docker run --restart on-failure:10 --env-file ./.env  stakewiselabs/v3-keeper
+docker run --restart on-failure:10 --env-file ./.env europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper
 ```
 
 ### Option 2. Use Kubernetes helm chart
