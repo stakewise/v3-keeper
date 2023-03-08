@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Keeper is responsible for collecting votes from StakeWise v3 oracles, validating and sending them to the oracle contract.
+Keeper is responsible for collecting votes from StakeWise v3 oracles, validating and sending them to the Keeper contract.
 
 Keeper is a service that aggregates votes that were submitted by all the StakeWise v3 oracles and submits the resulted transaction.
 It helps save gas cost and stability as there is no need for every oracle to submit a vote.
