@@ -85,7 +85,7 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper
+            europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper
           tags: |
             type=ref,event=branch
             type=ref,event=tag
