@@ -31,8 +31,7 @@ Any execution client that supports [ETH Execution API specification](https://eth
 ### Step 1. Generate hot wallet
 
 The hot wallet is used to submit reward votes transactions. You must send some ETH (DAI for Gnosis) to
-the wallet for the gas expenses. The validator registration costs around 0.01 ETH with 30 Gwei gas price. You must keep
-an eye on your wallet balance, otherwise, validators will stop registering.
+the wallet for the gas expenses.
 
 You can use any of the tools available for generating the hot wallet. For example,
 
