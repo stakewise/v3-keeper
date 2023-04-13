@@ -6,8 +6,9 @@ from aiohttp import ClientSession, ClientTimeout
 from sw_utils import IpfsFetchClient
 
 from src.accounts import keeper_account
-from src.clients import execution_client
+from src.clients import consensus_client, execution_client
 from src.config.settings import (
+    CONSENSUS_ENDPOINT,
     DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINT,
     IPFS_FETCH_ENDPOINTS,
@@ -34,6 +35,18 @@ async def startup_checks():
         )
 
     await _check_execution_node()
+
+    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    async def _check_consensus_node():
+        logger.info('Checking connection to consensus node...')
+        data = await consensus_client.get_finality_checkpoint()
+        logger.info(
+            'Connected to consensus node at %s. Finalized epoch: %s',
+            CONSENSUS_ENDPOINT,
+            data['data']['finalized']['epoch'],
+        )
+
+    await _check_consensus_node()
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes():

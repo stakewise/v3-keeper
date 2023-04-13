@@ -5,7 +5,9 @@ from sw_utils import InterruptHandler
 
 import src
 from src.config.settings import LOG_LEVEL, NETWORK, NETWORK_CONFIG, SENTRY_DSN
-from src.oracles import process_votes
+from src.execution import get_oracles, get_oracles_threshold
+from src.exits import process_exits
+from src.rewards import process_rewards
 from src.startup_check import startup_checks
 
 logging.basicConfig(
@@ -30,7 +32,15 @@ async def main() -> None:
     interrupt_handler = InterruptHandler()
 
     while not interrupt_handler.exit:
-        await process_votes()
+        oracles = await get_oracles()
+        if not oracles:
+            logger.error('Empty oracles set')
+            await asyncio.sleep(60)
+            continue
+        threshold = await get_oracles_threshold()
+
+        await process_rewards(oracles=oracles, threshold=threshold)
+        await process_exits(oracles=oracles, threshold=threshold)
         await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
 
 

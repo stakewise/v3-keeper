@@ -4,6 +4,7 @@ from src.config.networks import GOERLI, NETWORKS, NetworkConfig
 
 # connections
 EXECUTION_ENDPOINT = config('EXECUTION_ENDPOINT')
+CONSENSUS_ENDPOINT = config('CONSENSUS_ENDPOINT')
 
 # keeper
 PRIVATE_KEY = config('PRIVATE_KEY')
