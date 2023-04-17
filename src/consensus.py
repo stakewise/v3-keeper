@@ -21,7 +21,7 @@ async def submit_voluntary_exit(epoch: int, validator_index: int, signature: Hex
         'signature': signature
     }
     async with ClientSession() as session:
-        async with session.post(endpoint, data=data) as response:
+        async with session.post(endpoint, json=data) as response:
             response.raise_for_status()
 
 

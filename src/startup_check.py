@@ -66,11 +66,11 @@ async def startup_checks():
     await _check_ipfs_fetch_nodes()
 
     logger.info('Checking connection to oracles set...')
-    oracles = (await get_oracles()).values()
+    oracles = await get_oracles()
 
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(
-            *[_aiohttp_fetch(session=session, url=endpoint) for endpoint in oracles],
+            *[_aiohttp_fetch(session=session, url=oracle.endpoint) for oracle in oracles],
             return_exceptions=True
         )
 

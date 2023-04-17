@@ -68,7 +68,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 
         if result:
             for validator_exit in result:
-                validator_exits[validator_exit.index].append(validator_exit)
+                validator_exits[validator_exit.validator_index].append(validator_exit)
 
     return validator_exits
 
@@ -90,7 +90,9 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
 
         validator_exit = ValidatorExitShare(
             validator_index=exit_data['index'],
-            exit_signature_share=BLSSignature(exit_data['exit_signature_share']),
+            exit_signature_share=BLSSignature(
+                Web3.to_bytes(hexstr=exit_data['exit_signature_share'])
+            ),
             share_index=oracle.index,
         )
         exits.append(validator_exit)
