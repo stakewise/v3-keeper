@@ -5,10 +5,17 @@ from urllib.parse import urljoin
 
 import aiohttp
 from eth_typing.bls import BLSSignature
+from sw_utils.consensus import EXITED_STATUSES
 from web3 import Web3
 
+from src.clients import consensus_client
 from src.common import aiohttp_fetch
-from src.consensus import get_finality_epoch, submit_voluntary_exit
+from src.config.settings import VALIDATORS_FETCH_CHUNK_SIZE
+from src.consensus import (
+    get_chain_finalized_head,
+    get_finality_epoch,
+    submit_voluntary_exit,
+)
 from src.crypto import reconstruct_shared_bls_signature
 from src.typings import Oracle, ValidatorExitShare
 
@@ -18,7 +25,19 @@ REWARD_VOTE_URL_PATH = '/validator-exits/'
 
 
 async def process_exits(oracles: list[Oracle], threshold: int) -> None:
+    chain_head = await get_chain_finalized_head()
     validator_exits = await _fetch_validator_exits(oracles)
+    validator_indexes = [str(x) for x in validator_exits.keys()]
+    exited_statuses = [x.value for x in EXITED_STATUSES]
+    for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
+        validators_batch = await consensus_client.get_validators_by_ids(
+            validator_ids=validator_indexes[i: i + VALIDATORS_FETCH_CHUNK_SIZE],
+            state_id=str(chain_head.consensus_block),
+        )
+        for validator in validators_batch['data']:
+            if validator.get('status') in exited_statuses:
+                del validator_exits[int(validator.get('index'))]
+
     if not validator_exits:
         return
 

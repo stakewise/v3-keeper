@@ -20,6 +20,8 @@ class NetworkConfig:
     KEEPER_CONTRACT_ADDRESS: ChecksumAddress
     ORACLES_CONTRACT_ADDRESS: ChecksumAddress
     SECONDS_PER_BLOCK: Decimal
+    SLOTS_PER_EPOCH: int
+    SECONDS_PER_SLOT: int
     IS_POA: bool
     KEEPER_MIN_BALANCE: Wei
 
@@ -30,6 +32,8 @@ NETWORKS = {
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         SECONDS_PER_BLOCK=Decimal(12),
+        SLOTS_PER_EPOCH=32,
+        SECONDS_PER_SLOT=12,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
@@ -42,6 +46,8 @@ NETWORKS = {
             '0xDF43F5dBB585C6b38AeC413685aa67CD1dD47091'
         ),
         SECONDS_PER_BLOCK=Decimal(12),
+        SLOTS_PER_EPOCH=32,
+        SECONDS_PER_SLOT=12,
         IS_POA=True,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
@@ -50,6 +56,8 @@ NETWORKS = {
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         SECONDS_PER_BLOCK=Decimal('6.8'),
+        SLOTS_PER_EPOCH=16,
+        SECONDS_PER_SLOT=5,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),

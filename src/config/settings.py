@@ -26,6 +26,7 @@ IPFS_FETCH_ENDPOINTS = config(
 )
 
 DEFAULT_RETRY_TIME = 30
+VALIDATORS_FETCH_CHUNK_SIZE = config('VALIDATORS_FETCH_CHUNK_SIZE', default=100, cast=int)
 
 # sentry config
 SENTRY_DSN = config('SENTRY_DSN', default='')
