@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 
 import aiohttp
 from eth_typing.bls import BLSSignature
-from sw_utils.consensus import EXITED_STATUSES
+from sw_utils import ValidatorStatus
 from web3 import Web3
 
 from src.clients import consensus_client
@@ -23,12 +23,20 @@ logger = logging.getLogger(__name__)
 
 REWARD_VOTE_URL_PATH = '/validator-exits/'
 
+EXITING_STATUSES = [
+    ValidatorStatus.ACTIVE_EXITING,
+    ValidatorStatus.EXITED_UNSLASHED,
+    ValidatorStatus.EXITED_SLASHED,
+    ValidatorStatus.WITHDRAWAL_POSSIBLE,
+    ValidatorStatus.WITHDRAWAL_DONE,
+]
+
 
 async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     chain_head = await get_chain_finalized_head()
     validator_exits = await _fetch_validator_exits(oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
-    exited_statuses = [x.value for x in EXITED_STATUSES]
+    exited_statuses = [x.value for x in EXITING_STATUSES]
     for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
             validator_ids=validator_indexes[i: i + VALIDATORS_FETCH_CHUNK_SIZE],
@@ -43,7 +51,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
 
     epoch = await get_finality_epoch()
     for validator_index, shares in validator_exits.items():
-        logger.info('Start validator %s withdrawal', validator_index)
+        logger.info('Exiting %s validator', validator_index)
 
         if len(shares) < threshold:
             logger.warning(
@@ -62,7 +70,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
             validator_index=validator_index,
             signature=Web3.to_hex(exit_signature)
         )
-        logger.info('Validator %s was successfully exited', validator_index)
+        logger.info('Validator %s exit successfully initiated', validator_index)
 
     logger.info('Validator exits has been successfully processed')
 
