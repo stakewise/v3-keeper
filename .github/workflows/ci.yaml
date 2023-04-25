@@ -43,6 +43,7 @@ jobs:
     env:
       NETWORK: 'goerli'
       EXECUTION_ENDPOINT: 'http://example.com'
+      CONSENSUS_ENDPOINT: 'http://example.com'
       PRIVATE_KEY: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     steps:
       - name: Checkout code

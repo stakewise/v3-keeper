@@ -1,7 +1,7 @@
 import logging
 
 import backoff
-from eth_typing import ChecksumAddress, HexStr
+from eth_typing import HexStr
 from sw_utils.typings import Bytes32
 from web3 import Web3
 from web3.types import Timestamp, Wei
@@ -10,7 +10,7 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract, oracles_contract
-from src.typings import RewardsRootUpdateParams
+from src.typings import Oracle, RewardsRootUpdateParams
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ async def can_update_rewards() -> bool:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_oracles() -> dict[ChecksumAddress, str]:
+async def get_oracles() -> list[Oracle]:
     events = await oracles_contract.events.ConfigUpdated.get_logs(from_block=0)
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
@@ -44,9 +44,14 @@ async def get_oracles() -> dict[ChecksumAddress, str]:
     ipfs_hash = events[-1]['args']['configIpfsHash']
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
-    oracles: dict[ChecksumAddress, str] = {}
-    for oracle in config:
-        oracles[Web3.to_checksum_address(oracle['address'])] = oracle['endpoint']
+    oracles = []
+    for index, oracle_config in enumerate(config):
+        oracle = Oracle(
+            address=Web3.to_checksum_address(oracle_config['address']),
+            endpoint=oracle_config['endpoint'],
+            index=index,
+        )
+        oracles.append(oracle)
 
     return oracles
 

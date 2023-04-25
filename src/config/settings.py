@@ -4,6 +4,7 @@ from src.config.networks import GOERLI, NETWORKS, NetworkConfig
 
 # connections
 EXECUTION_ENDPOINT = config('EXECUTION_ENDPOINT')
+CONSENSUS_ENDPOINT = config('CONSENSUS_ENDPOINT')
 
 # keeper
 PRIVATE_KEY = config('PRIVATE_KEY')
@@ -25,6 +26,7 @@ IPFS_FETCH_ENDPOINTS = config(
 )
 
 DEFAULT_RETRY_TIME = 30
+VALIDATORS_FETCH_CHUNK_SIZE = config('VALIDATORS_FETCH_CHUNK_SIZE', default=100, cast=int)
 
 # sentry config
 SENTRY_DSN = config('SENTRY_DSN', default='')
