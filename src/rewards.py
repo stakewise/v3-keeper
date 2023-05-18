@@ -31,19 +31,22 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
         logger.info('No votes with nonce %d', current_nonce)
         return
 
-    counter = Counter([(vote.root, vote.ipfs_hash, vote.update_timestamp) for vote in votes])
+    counter = Counter([(
+        vote.root, vote.ipfs_hash, vote.update_timestamp, vote.avg_reward_per_second
+    ) for vote in votes])
 
     most_voted = counter.most_common(1)
     if not await _can_submit(most_voted[0][1], threshold):
         logger.warning('Not enough oracle votes, skipping update...')
         return
 
-    root, ipfs_hash, update_timestamp = most_voted[0][0]
+    root, ipfs_hash, update_timestamp, avg_reward_per_second = most_voted[0][0]
     logger.info(
-        'Submitting rewards update: root=%s, ipfs hash=%s, timestamp=%d',
+        'Submitting rewards update: root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
         root,
         ipfs_hash,
         update_timestamp,
+        avg_reward_per_second,
     )
 
     signatures_count = 0
@@ -52,16 +55,18 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
         if signatures_count >= threshold:
             break
 
-        if (vote.root, vote.ipfs_hash, vote.update_timestamp) == (
+        if (vote.root, vote.ipfs_hash, vote.update_timestamp, vote.avg_reward_per_second) == (
             root,
             ipfs_hash,
             update_timestamp,
+            avg_reward_per_second,
         ):
             signatures += vote.signature
             signatures_count += 1
 
     await submit_vote(
         rewards_root=root,
+        avg_reward_per_second=avg_reward_per_second,
         update_timestamp=update_timestamp,
         rewards_ipfs_hash=ipfs_hash,
         signatures=signatures,
@@ -108,7 +113,9 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
         )
         return None
 
-    for key in ['nonce', 'update_timestamp', 'signature', 'root', 'ipfs_hash']:
+    for key in [
+        'nonce', 'update_timestamp', 'signature', 'root', 'ipfs_hash', 'avg_reward_per_second'
+    ]:
         if key not in data.keys():
             logger.error(
                 'Invalid response from oracle',
@@ -123,5 +130,6 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
         signature=Web3.to_bytes(hexstr=data['signature']),
         root=data['root'],
         ipfs_hash=data['ipfs_hash'],
+        avg_reward_per_second=data['avg_reward_per_second'],
     )
     return vote

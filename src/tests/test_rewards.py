@@ -48,6 +48,7 @@ async def test_basic():
                 signature=random.randbytes(16),
                 root=HexStr(root) if not oracle.index % 2 else HexStr(wrong_root),
                 ipfs_hash=ipfs_hash if not oracle.index % 2 else wrong_ipfs_hash,
+                avg_reward_per_second=1000,
             )
         )
     signatures = b''
@@ -69,6 +70,7 @@ async def test_basic():
 
         submit_mock.assert_called_once_with(
             rewards_root=root,
+            avg_reward_per_second=1000,
             update_timestamp=ts,
             rewards_ipfs_hash=ipfs_hash,
             signatures=signatures,

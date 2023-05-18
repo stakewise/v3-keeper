@@ -28,12 +28,14 @@ class RewardVote:
     signature: bytes
     root: HexStr
     ipfs_hash: str
+    avg_reward_per_second: int
 
 
 @dataclass
 class RewardsRootUpdateParams:
     rewardsRoot: HexStr | Bytes32
     updateTimestamp: Timestamp
+    avgRewardPerSecond: int
     rewardsIpfsHash: str
     signatures: bytes
 

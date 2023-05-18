@@ -59,12 +59,14 @@ async def get_oracles() -> list[Oracle]:
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def submit_vote(
         rewards_root: HexStr | Bytes32,
+        avg_reward_per_second: int,
         update_timestamp: Timestamp,
         rewards_ipfs_hash: str,
         signatures: bytes,
 ) -> None:
     tx_data_params = RewardsRootUpdateParams(
         rewardsRoot=rewards_root,
+        avgRewardPerSecond=avg_reward_per_second,
         updateTimestamp=update_timestamp,
         rewardsIpfsHash=rewards_ipfs_hash,
         signatures=signatures,
@@ -72,6 +74,7 @@ async def submit_vote(
     tx = await keeper_contract.functions.setRewardsRoot(
         (
             tx_data_params.rewardsRoot,
+            tx_data_params.avgRewardPerSecond,
             tx_data_params.updateTimestamp,
             tx_data_params.rewardsIpfsHash,
             tx_data_params.signatures,
