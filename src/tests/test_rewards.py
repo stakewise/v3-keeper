@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from eth_typing import HexStr
 from sw_utils.tests import faker
+from web3 import Web3
 from web3.types import Timestamp
 
 from src.rewards import keeper_contract, process_rewards
@@ -54,7 +55,7 @@ async def test_basic():
             )
         )
     signatures = b''
-    for vote in sorted(votes, key=lambda x: x.oracle_address):
+    for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
         if vote.body.root == root:
             signatures += vote.signature
 
