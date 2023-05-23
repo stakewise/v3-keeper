@@ -36,7 +36,9 @@ async def can_update_rewards() -> bool:
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def get_oracles() -> list[Oracle]:
-    events = await oracles_contract.events.ConfigUpdated.get_logs(from_block=0)
+    events = await oracles_contract.events.ConfigUpdated.get_logs(
+        from_block=NETWORK_CONFIG.ORACLES_GENESIS_BLOCK
+    )
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
 
