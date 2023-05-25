@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from eth_typing.bls import BLSSignature
-from sw_utils.typings import Bytes32
 from web3.types import Timestamp
 
 
@@ -20,22 +19,23 @@ class ValidatorExitShare:
     share_index: int
 
 
+@dataclass(frozen=True)
+class RewardVoteBody:
+    """
+    Represents data sent with update-rewards-root transaction, not including signatures
+    """
+    update_timestamp: Timestamp
+    root: HexStr
+    ipfs_hash: str
+    avg_reward_per_second: int
+
+
 @dataclass
 class RewardVote:
     oracle_address: ChecksumAddress
     nonce: int
-    update_timestamp: Timestamp
     signature: bytes
-    root: HexStr
-    ipfs_hash: str
-
-
-@dataclass
-class RewardsRootUpdateParams:
-    rewardsRoot: HexStr | Bytes32
-    updateTimestamp: Timestamp
-    rewardsIpfsHash: str
-    signatures: bytes
+    body: RewardVoteBody
 
 
 @dataclass
