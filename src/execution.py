@@ -1,16 +1,14 @@
 import logging
 
 import backoff
-from eth_typing import ChecksumAddress, HexStr
-from sw_utils.typings import Bytes32
 from web3 import Web3
-from web3.types import Timestamp, Wei
+from web3.types import Wei
 
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract, oracles_contract
-from src.typings import RewardsRootUpdateParams
+from src.typings import Oracle, RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
@@ -24,19 +22,10 @@ async def get_oracles_threshold() -> int:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_keeper_rewards_nonce() -> int:
-    return await keeper_contract.functions.rewardsNonce().call()
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def can_update_rewards() -> bool:
-    """Checks whether keeper allows next update."""
-    return await keeper_contract.functions.canUpdateRewards().call()
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_oracles() -> dict[ChecksumAddress, str]:
-    events = await oracles_contract.events.ConfigUpdated.get_logs(from_block=0)
+async def get_oracles() -> list[Oracle]:
+    events = await oracles_contract.events.ConfigUpdated.get_logs(
+        from_block=NETWORK_CONFIG.ORACLES_GENESIS_BLOCK
+    )
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
 
@@ -44,34 +33,26 @@ async def get_oracles() -> dict[ChecksumAddress, str]:
     ipfs_hash = events[-1]['args']['configIpfsHash']
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
-    oracles: dict[ChecksumAddress, str] = {}
-    for oracle in config:
-        oracles[Web3.to_checksum_address(oracle['address'])] = oracle['endpoint']
+    oracles = []
+    for index, oracle_config in enumerate(config):
+        oracle = Oracle(
+            address=Web3.to_checksum_address(oracle_config['address']),
+            endpoint=oracle_config['endpoint'],
+            index=index,
+        )
+        oracles.append(oracle)
 
     return oracles
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def submit_vote(
-        rewards_root: HexStr | Bytes32,
-        update_timestamp: Timestamp,
-        rewards_ipfs_hash: str,
+        vote: RewardVoteBody,
         signatures: bytes,
 ) -> None:
-    tx_data_params = RewardsRootUpdateParams(
-        rewardsRoot=rewards_root,
-        updateTimestamp=update_timestamp,
-        rewardsIpfsHash=rewards_ipfs_hash,
-        signatures=signatures,
+    tx = await keeper_contract.set_rewards_root(
+        vote, signatures
     )
-    tx = await keeper_contract.functions.setRewardsRoot(
-        (
-            tx_data_params.rewardsRoot,
-            tx_data_params.updateTimestamp,
-            tx_data_params.rewardsIpfsHash,
-            tx_data_params.signatures,
-        ),
-    ).transact()  # type: ignore
     await execution_client.eth.wait_for_transaction_receipt(
         tx, timeout=DEFAULT_RETRY_TIME
     )  # type: ignore

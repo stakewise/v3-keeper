@@ -1,0 +1,128 @@
+import asyncio
+import logging
+from collections import Counter
+from urllib.parse import urljoin
+
+import aiohttp
+from web3 import Web3
+from web3.types import Timestamp
+
+from src.common import aiohttp_fetch
+from src.contracts import keeper_contract
+from src.execution import submit_vote
+from src.typings import Oracle, RewardVote, RewardVoteBody
+
+logger = logging.getLogger(__name__)
+
+REWARD_VOTE_URL_PATH = '/'
+
+
+async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
+    if not await keeper_contract.can_update_rewards():
+        return
+
+    votes = await _fetch_reward_votes(oracles)
+    if not votes:
+        logger.warning('No active votes')
+        return
+
+    current_nonce = await keeper_contract.get_rewards_nonce()
+    votes = [vote for vote in votes if vote.nonce == current_nonce]
+    if not votes:
+        logger.info('No votes with nonce %d', current_nonce)
+        return
+
+    counter = Counter([vote.body for vote in votes])
+
+    winner, winner_vote_count = counter.most_common(1)[0]
+
+    if not await _can_submit(winner_vote_count, threshold):
+        logger.warning('Not enough oracle votes, skipping update...')
+        return
+
+    logger.info(
+        'Submitting rewards update: root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
+        winner.root,
+        winner.ipfs_hash,
+        winner.update_timestamp,
+        winner.avg_reward_per_second,
+    )
+
+    signatures_count = 0
+    signatures = b''
+    for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
+        if signatures_count >= threshold:
+            break
+
+        if vote.body == winner:
+            signatures += vote.signature
+            signatures_count += 1
+
+    await submit_vote(
+        winner,
+        signatures=signatures,
+    )
+    logger.info('Rewards has been successfully updated')
+
+
+async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
+    async with aiohttp.ClientSession() as session:
+        results = await asyncio.gather(
+            *[
+                _fetch_vote(
+                    session=session, oracle=oracle
+                )
+                for oracle in oracles
+            ],
+            return_exceptions=True
+        )
+
+    votes: list[RewardVote] = []
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.error(result)
+            continue
+
+        if result:
+            votes.append(result)
+
+    return votes
+
+
+async def _can_submit(signatures_count: int, threshold) -> bool:
+    return signatures_count >= threshold
+
+
+async def _fetch_vote(session, oracle) -> RewardVote | None:
+    url = urljoin(oracle.endpoint, REWARD_VOTE_URL_PATH)
+    data = await aiohttp_fetch(session, url)
+
+    if not data:
+        logger.warning(
+            'Empty response from oracle',
+            extra={'oracle': oracle.address, 'response': data}
+        )
+        return None
+
+    for key in [
+        'nonce', 'update_timestamp', 'signature', 'root', 'ipfs_hash', 'avg_reward_per_second'
+    ]:
+        if key not in data.keys():
+            logger.error(
+                'Invalid response from oracle',
+                extra={'oracle': oracle.address, 'response': data}
+            )
+            return None
+
+    vote = RewardVote(
+        oracle_address=oracle.address,
+        nonce=data['nonce'],
+        signature=Web3.to_bytes(hexstr=data['signature']),
+        body=RewardVoteBody(
+            root=data['root'],
+            ipfs_hash=data['ipfs_hash'],
+            avg_reward_per_second=data['avg_reward_per_second'],
+            update_timestamp=Timestamp(data['update_timestamp']),
+        )
+    )
+    return vote

@@ -4,7 +4,7 @@ from decimal import Decimal
 from ens.constants import EMPTY_ADDR_HEX
 from eth_typing import ChecksumAddress
 from web3 import Web3
-from web3.types import Wei
+from web3.types import BlockNumber, Wei
 
 MAINNET = 'mainnet'
 GOERLI = 'goerli'
@@ -19,7 +19,10 @@ class NetworkConfig:
     SYMBOL: str
     KEEPER_CONTRACT_ADDRESS: ChecksumAddress
     ORACLES_CONTRACT_ADDRESS: ChecksumAddress
+    ORACLES_GENESIS_BLOCK: BlockNumber
     SECONDS_PER_BLOCK: Decimal
+    SLOTS_PER_EPOCH: int
+    SECONDS_PER_SLOT: int
     IS_POA: bool
     KEEPER_MIN_BALANCE: Wei
 
@@ -29,19 +32,25 @@ NETWORKS = {
         SYMBOL='ETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
+        ORACLES_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal(12),
+        SLOTS_PER_EPOCH=32,
+        SECONDS_PER_SLOT=12,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
     GOERLI: NetworkConfig(
         SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x1833E7Ba555A6abc99B8299e662AfEec88167805'
+            '0x996461A815191bDE7FAdb7ABAbA9053cd6969CAA'
         ),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xDF43F5dBB585C6b38AeC413685aa67CD1dD47091'
+            '0x747653E25bF69D9D3AA95F2B9597D8cf080d9813'
         ),
+        ORACLES_GENESIS_BLOCK=BlockNumber(8982223),
         SECONDS_PER_BLOCK=Decimal(12),
+        SLOTS_PER_EPOCH=32,
+        SECONDS_PER_SLOT=12,
         IS_POA=True,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
@@ -49,7 +58,10 @@ NETWORKS = {
         SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
+        ORACLES_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal('6.8'),
+        SLOTS_PER_EPOCH=16,
+        SECONDS_PER_SLOT=5,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
