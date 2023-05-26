@@ -34,7 +34,7 @@ async def get_oracles() -> list[Oracle]:
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
     oracles = []
-    for index, oracle_config in enumerate(config):
+    for index, oracle_config in enumerate(config['oracles']):
         oracle = Oracle(
             address=Web3.to_checksum_address(oracle_config['address']),
             endpoint=oracle_config['endpoint'],
