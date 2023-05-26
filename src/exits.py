@@ -21,7 +21,7 @@ from src.typings import Oracle, ValidatorExitShare
 
 logger = logging.getLogger(__name__)
 
-REWARD_VOTE_URL_PATH = '/validator-exits/'
+EXIT_VOTE_URL_PATH = '/exits/'
 
 EXITING_STATUSES = [
     ValidatorStatus.ACTIVE_EXITING,
@@ -101,7 +101,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 
 
 async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
-    url = urljoin(oracle.endpoint, REWARD_VOTE_URL_PATH)
+    url = urljoin(oracle.endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
     exits = []
     if not data:
