@@ -113,7 +113,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'europe-west4-docker.pkg.dev/stakewiselabs/public/v3-operator:sha-${{ steps.commit-hash.outputs.short }}'
+          image-ref: 'europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper:sha-${{ steps.commit-hash.outputs.short }}'
           format: 'table'
           exit-code: '1'
           vuln-type: 'os,library'
