@@ -110,6 +110,10 @@ jobs:
       - id: commit-hash
         uses: pr-mpt/actions-commit-hash@v2
 
+      - name: 'Create env file'
+        run: |
+          echo "${{ secrets.GAR_JSON_KEY }}" > /tmp/gar.json
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -119,3 +123,5 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+        env:
+          GOOGLE_APPLICATION_CREDENTIAL: /tmp/gar.json
