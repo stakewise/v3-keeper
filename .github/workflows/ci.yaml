@@ -107,11 +107,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  scanner:
-    name: Trivy scanner
-    runs-on: ubuntu-latest
-    needs: docker
-    steps:
       - id: commit-hash
         uses: pr-mpt/actions-commit-hash@v2
 
@@ -124,5 +119,3 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GAR_JSON_KEY }}
