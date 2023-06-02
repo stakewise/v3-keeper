@@ -115,11 +115,15 @@ jobs:
       - id: commit-hash
         uses: pr-mpt/actions-commit-hash@v2
 
-      - name: 'Create env file'
-        run: 'echo "$GAR_JSON_KEY" > /tmp/gar.json'
-        shell: bash
-        env:
-          GAR_JSON_KEY: ${{secrets.GAR_JSON_KEY}}
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: stakewiselabs
+          service_account_key: ${{ secrets.GAR_JSON_KEY }}
+          export_default_credentials: true
+
+      - name: Authenticate with Container Registry
+        run: gcloud auth configure-docker europe-west4-docker.pkg.dev
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -130,5 +134,3 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-        env:
-          GOOGLE_APPLICATION_CREDENTIAL: /tmp/gar.json
