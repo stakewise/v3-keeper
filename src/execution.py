@@ -50,7 +50,7 @@ async def submit_vote(
         vote: RewardVoteBody,
         signatures: bytes,
 ) -> None:
-    tx = await keeper_contract.set_rewards_root(
+    tx = await keeper_contract.update_rewards(
         vote, signatures
     )
     await execution_client.eth.wait_for_transaction_receipt(
