@@ -42,12 +42,12 @@ NETWORKS = {
     GOERLI: NetworkConfig(
         SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x996461A815191bDE7FAdb7ABAbA9053cd6969CAA'
+            '0xfdBDd455dE0D0AB2B24f4A3B450A2a0e82F7a666'
         ),
         ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x747653E25bF69D9D3AA95F2B9597D8cf080d9813'
+            '0x95a4ECB8879B526534e8dB48A75F8EF7E521d8fE'
         ),
-        ORACLES_GENESIS_BLOCK=BlockNumber(8982223),
+        ORACLES_GENESIS_BLOCK=BlockNumber(9116861),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         SECONDS_PER_SLOT=12,
