@@ -56,6 +56,7 @@ async def submit_vote(
     await execution_client.eth.wait_for_transaction_receipt(
         tx, timeout=DEFAULT_RETRY_TIME
     )  # type: ignore
+    logger.info('Rewards has been successfully updated. Tx hash: %s', tx.hex())
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)

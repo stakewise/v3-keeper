@@ -62,7 +62,6 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
         winner,
         signatures=signatures,
     )
-    logger.info('Rewards has been successfully updated')
 
 
 async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
