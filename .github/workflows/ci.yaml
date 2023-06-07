@@ -123,7 +123,7 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           images: |
-            europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper
+            europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -152,20 +152,10 @@ jobs:
       - id: commit-hash
         uses: pr-mpt/actions-commit-hash@v2
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.1
-        with:
-          project_id: stakewiselabs
-          service_account_key: ${{ secrets.GAR_JSON_KEY }}
-          export_default_credentials: true
-
-      - name: Authenticate with Container Registry
-        run: gcloud auth configure-docker europe-west4-docker.pkg.dev
-
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper:sha-${{ steps.commit-hash.outputs.short }}'
+          image-ref: 'europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper:sha-${{ steps.commit-hash.outputs.short }}'
           format: 'table'
           exit-code: '1'
           vuln-type: 'os,library'
