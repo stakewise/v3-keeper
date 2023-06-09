@@ -11,11 +11,7 @@ from web3 import Web3
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
 from src.config.settings import VALIDATORS_FETCH_CHUNK_SIZE
-from src.consensus import (
-    get_chain_finalized_head,
-    get_finality_epoch,
-    submit_voluntary_exit,
-)
+from src.consensus import get_chain_finalized_head, submit_voluntary_exit
 from src.crypto import reconstruct_shared_bls_signature
 from src.typings import Oracle, ValidatorExitShare
 
@@ -49,7 +45,6 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     if not validator_exits:
         return
 
-    epoch = await get_finality_epoch()
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
 
@@ -66,7 +61,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
         exit_signature = reconstruct_shared_bls_signature(signatures)
 
         await submit_voluntary_exit(
-            epoch=epoch,
+            epoch=0,
             validator_index=validator_index,
             signature=Web3.to_hex(exit_signature)
         )

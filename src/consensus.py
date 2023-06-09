@@ -1,5 +1,3 @@
-import logging
-
 from aiohttp import ClientResponseError, ClientSession
 from eth_typing import BlockNumber, HexStr
 from sw_utils.decorators import backoff_aiohttp_errors
@@ -8,8 +6,6 @@ from web3.types import Timestamp
 from src.clients import consensus_client
 from src.config.settings import CONSENSUS_ENDPOINT, DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.typings import ChainHead
-
-logger = logging.getLogger(__name__)
 
 
 @backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
@@ -24,14 +20,7 @@ async def submit_voluntary_exit(epoch: int, validator_index: int, signature: Hex
     }
     async with ClientSession() as session:
         async with session.post(endpoint, json=data) as response:
-            print(await response.json())
             response.raise_for_status()
-
-
-@backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
-async def get_finality_epoch() -> int:
-    checkpoints = await consensus_client.get_finality_checkpoint()
-    return int(checkpoints['data']['finalized']['epoch'])
 
 
 @backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)

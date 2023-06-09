@@ -3,7 +3,8 @@ import os
 from typing import Dict
 
 import backoff
-from eth_typing import ChecksumAddress, HexStr
+from eth_typing import ChecksumAddress
+from hexbytes import HexBytes
 from web3.contract import AsyncContract
 
 from src.clients import execution_client
@@ -26,7 +27,7 @@ class KeeperContract:
         )
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexStr:
+    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:
         return await self.contract.functions.updateRewards(
             (
                 vote.root,
