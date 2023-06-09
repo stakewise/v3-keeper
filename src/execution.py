@@ -1,6 +1,7 @@
 import logging
 
 import backoff
+from eth_keys.datatypes import PublicKey
 from web3 import Web3
 from web3.types import Wei
 
@@ -35,8 +36,9 @@ async def get_oracles() -> list[Oracle]:
 
     oracles = []
     for index, oracle_config in enumerate(config['oracles']):
+        public_key = PublicKey(Web3.to_bytes(hexstr=oracle_config['public_key']))
         oracle = Oracle(
-            address=Web3.to_checksum_address(oracle_config['address']),
+            address=public_key.to_checksum_address(),
             endpoint=oracle_config['endpoint'],
             index=index,
         )
