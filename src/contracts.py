@@ -3,7 +3,7 @@ import os
 from typing import Dict
 
 import backoff
-from eth_typing import ChecksumAddress, HexStr
+from eth_typing import ChecksumAddress
 from web3.contract import AsyncContract
 
 from src.clients import execution_client
