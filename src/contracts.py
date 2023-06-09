@@ -26,7 +26,7 @@ class KeeperContract:
         )
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexStr:
+    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> bytes:
         return await self.contract.functions.updateRewards(
             (
                 vote.root,
