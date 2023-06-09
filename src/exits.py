@@ -11,10 +11,7 @@ from web3 import Web3
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
 from src.config.settings import VALIDATORS_FETCH_CHUNK_SIZE
-from src.consensus import (
-    get_chain_finalized_head,
-    submit_voluntary_exit,
-)
+from src.consensus import get_chain_finalized_head, submit_voluntary_exit
 from src.crypto import reconstruct_shared_bls_signature
 from src.typings import Oracle, ValidatorExitShare
 
