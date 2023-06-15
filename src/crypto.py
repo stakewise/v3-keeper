@@ -6,9 +6,7 @@ from py_ecc.utils import prime_field_inv
 PRIME = curve_order
 
 
-def reconstruct_shared_bls_signature(
-    signatures: dict[int, BLSSignature]
-) -> BLSSignature:
+def reconstruct_shared_bls_signature(signatures: dict[int, BLSSignature]) -> BLSSignature:
     """
     Reconstructs shared BLS private key signature.
     Copied from https://github.com/dankrad/python-ibft/blob/master/bls_threshold.py

@@ -12,11 +12,8 @@ from src.typings import ChainHead
 async def submit_voluntary_exit(epoch: int, validator_index: int, signature: HexStr) -> None:
     endpoint = f'{CONSENSUS_ENDPOINT}/eth/v1/beacon/pool/voluntary_exits'
     data = {
-        'message': {
-            'epoch': str(epoch),
-            'validator_index': str(validator_index)
-        },
-        'signature': signature
+        'message': {'epoch': str(epoch), 'validator_index': str(validator_index)},
+        'signature': signature,
     }
     async with ClientSession() as session:
         async with session.post(endpoint, json=data) as response:
