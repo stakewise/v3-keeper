@@ -53,19 +53,25 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
                 'Not enough exit signature shares for validator %s, skipping...',
                 validator_index
             )
-            return
+            continue
 
         signatures = {}
         for share in shares:
             signatures[share.share_index] = share.exit_signature_share
-        exit_signature = reconstruct_shared_bls_signature(signatures)
 
-        await submit_voluntary_exit(
-            epoch=0,
-            validator_index=validator_index,
-            signature=Web3.to_hex(exit_signature)
-        )
-        logger.info('Validator %s exit successfully initiated', validator_index)
+        try:
+            exit_signature = reconstruct_shared_bls_signature(signatures)
+
+            await submit_voluntary_exit(
+                epoch=0,
+                validator_index=validator_index,
+                signature=Web3.to_hex(exit_signature)
+            )
+            logger.info('Validator %s exit successfully initiated', validator_index)
+
+        except Exception as e:
+            logger.error('Failed to process validator %s exit: %s', validator_index, e)
+            logger.exception(e)
 
     logger.info('Validator exits has been successfully processed')
 
