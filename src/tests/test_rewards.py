@@ -23,7 +23,8 @@ async def test_early():
         'src.rewards.aiohttp_fetch',
         return_value=[],
     ), patch.object(
-        keeper_contract, 'can_update_rewards',
+        keeper_contract,
+        'can_update_rewards',
         return_value=False,
     ), patch('src.rewards.submit_vote') as submit_mock:
         await process_rewards(oracles, 3)
@@ -51,7 +52,7 @@ async def test_basic():
                     root=HexStr(root) if not oracle.index % 2 else HexStr(wrong_root),
                     ipfs_hash=ipfs_hash if not oracle.index % 2 else wrong_ipfs_hash,
                     avg_reward_per_second=1000,
-                )
+                ),
             )
         )
     signatures = b''
@@ -59,25 +60,22 @@ async def test_basic():
         if vote.body.root == root:
             signatures += vote.signature
 
-    with patch(
-        'src.rewards.aiohttp_fetch', return_value=[]
-    ), patch.object(
-        keeper_contract, 'can_update_rewards', return_value=True,
-    ), patch.object(
-        keeper_contract, 'get_rewards_nonce', return_value=nonce
+    with patch('src.rewards.aiohttp_fetch', return_value=[]), patch.object(
+        keeper_contract,
+        'can_update_rewards',
+        return_value=True,
+    ), patch.object(keeper_contract, 'get_rewards_nonce', return_value=nonce), patch(
+        'src.rewards._fetch_reward_votes',
+        return_value=votes,
     ), patch(
-        'src.rewards._fetch_reward_votes', return_value=votes,
-    ), patch(
-        'src.rewards.submit_vote', return_value=None,
+        'src.rewards.submit_vote',
+        return_value=None,
     ) as submit_mock:
         await process_rewards(oracles, 3)
 
         submit_mock.assert_called_once_with(
             RewardVoteBody(
-                root=root,
-                avg_reward_per_second=1000,
-                update_timestamp=ts,
-                ipfs_hash=ipfs_hash
+                root=root, avg_reward_per_second=1000, update_timestamp=ts, ipfs_hash=ipfs_hash
             ),
             signatures=signatures,
         )

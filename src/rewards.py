@@ -67,12 +67,7 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
 async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     async with aiohttp.ClientSession() as session:
         results = await asyncio.gather(
-            *[
-                _fetch_vote(
-                    session=session, oracle=oracle
-                )
-                for oracle in oracles
-            ],
+            *[_fetch_vote(session=session, oracle=oracle) for oracle in oracles],
             return_exceptions=True
         )
 
@@ -98,18 +93,21 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
 
     if not data:
         logger.warning(
-            'Empty response from oracle',
-            extra={'oracle': oracle.address, 'response': data}
+            'Empty response from oracle', extra={'oracle': oracle.address, 'response': data}
         )
         return None
 
     for key in [
-        'nonce', 'update_timestamp', 'signature', 'root', 'ipfs_hash', 'avg_reward_per_second'
+        'nonce',
+        'update_timestamp',
+        'signature',
+        'root',
+        'ipfs_hash',
+        'avg_reward_per_second',
     ]:
         if key not in data.keys():
             logger.error(
-                'Invalid response from oracle',
-                extra={'oracle': oracle.address, 'response': data}
+                'Invalid response from oracle', extra={'oracle': oracle.address, 'response': data}
             )
             return None
 
@@ -122,6 +120,6 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
             ipfs_hash=data['ipfs_hash'],
             avg_reward_per_second=data['avg_reward_per_second'],
             update_timestamp=Timestamp(data['update_timestamp']),
-        )
+        ),
     )
     return vote

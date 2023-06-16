@@ -22,9 +22,7 @@ class KeeperContract:
     abi_path = 'abi/IKeeper.json'
 
     def __init__(self, address: ChecksumAddress):
-        self.contract = execution_client.eth.contract(
-            address=address, abi=_load_abi(self.abi_path)
-        )
+        self.contract = execution_client.eth.contract(address=address, abi=_load_abi(self.abi_path))
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
     async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:

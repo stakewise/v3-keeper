@@ -24,6 +24,7 @@ class RewardVoteBody:
     """
     Represents data sent with update-rewards-root transaction, not including signatures
     """
+
     update_timestamp: Timestamp
     root: HexStr
     ipfs_hash: str

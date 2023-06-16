@@ -49,12 +49,10 @@ async def get_oracles() -> list[Oracle]:
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def submit_vote(
-        vote: RewardVoteBody,
-        signatures: bytes,
+    vote: RewardVoteBody,
+    signatures: bytes,
 ) -> None:
-    tx = await keeper_contract.update_rewards(
-        vote, signatures
-    )
+    tx = await keeper_contract.update_rewards(vote, signatures)
     await execution_client.eth.wait_for_transaction_receipt(
         tx, timeout=DEFAULT_RETRY_TIME
     )  # type: ignore
@@ -77,5 +75,5 @@ async def check_keeper_balance() -> None:
         logger.warning(
             'Keeper balance is too low. At least %s %s is recommended.',
             Web3.from_wei(keeper_min_balance, 'ether'),
-            symbol
+            symbol,
         )

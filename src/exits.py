@@ -35,7 +35,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     exited_statuses = [x.value for x in EXITING_STATUSES]
     for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
-            validator_ids=validator_indexes[i: i + VALIDATORS_FETCH_CHUNK_SIZE],
+            validator_ids=validator_indexes[i : i + VALIDATORS_FETCH_CHUNK_SIZE],
             state_id=str(chain_head.consensus_block),
         )
         for validator in validators_batch['data']:
@@ -50,8 +50,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
 
         if len(shares) < threshold:
             logger.warning(
-                'Not enough exit signature shares for validator %s, skipping...',
-                validator_index
+                'Not enough exit signature shares for validator %s, skipping...', validator_index
             )
             continue
 
@@ -63,9 +62,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
             exit_signature = reconstruct_shared_bls_signature(signatures)
 
             await submit_voluntary_exit(
-                epoch=0,
-                validator_index=validator_index,
-                signature=Web3.to_hex(exit_signature)
+                epoch=0, validator_index=validator_index, signature=Web3.to_hex(exit_signature)
             )
             logger.info('Validator %s exit successfully initiated', validator_index)
 
@@ -79,12 +76,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
 async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
     async with aiohttp.ClientSession() as session:
         results = await asyncio.gather(
-            *[
-                _fetch_exit_shares(
-                    session=session,  oracle=oracle
-                )
-                for oracle in oracles
-            ],
+            *[_fetch_exit_shares(session=session, oracle=oracle) for oracle in oracles],
             return_exceptions=True
         )
 
@@ -112,7 +104,7 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
             if key not in exit_data.keys():
                 logger.error(
                     'Invalid response from oracle',
-                    extra={'oracle': oracle.account, 'response': data}
+                    extra={'oracle': oracle.account, 'response': data},
                 )
                 return []
 
