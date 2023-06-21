@@ -10,6 +10,7 @@ from web3.types import Timestamp
 from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
 from src.execution import submit_vote
+from src.metrics import metrics
 from src.typings import Oracle, RewardVote, RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,13 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
                 'Invalid response from oracle', extra={'oracle': oracle.address, 'response': data}
             )
             return None
+
+    metrics.oracle_avg_rewards_per_second.labels(oracle_adress=oracle.address).set(
+        data['avg_reward_per_second']
+    )
+    metrics.oracle_update_timestamp.labels(oracle_adress=oracle.address).set(
+        data['update_timestamp']
+    )
 
     vote = RewardVote(
         oracle_address=oracle.address,

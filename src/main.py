@@ -4,9 +4,17 @@ import logging
 from sw_utils import InterruptHandler
 
 import src
-from src.config.settings import LOG_LEVEL, NETWORK, NETWORK_CONFIG, SENTRY_DSN
-from src.execution import get_oracles, get_oracles_threshold
+from src.config.settings import (
+    LOG_LEVEL,
+    METRICS_HOST,
+    METRICS_PORT,
+    NETWORK,
+    NETWORK_CONFIG,
+    SENTRY_DSN,
+)
+from src.execution import get_keeper_balance, get_oracles, get_oracles_threshold
 from src.exits import process_exits
+from src.metrics import metrics, metrics_server
 from src.rewards import process_rewards
 from src.startup_check import startup_checks
 
@@ -29,6 +37,9 @@ async def main() -> None:
 
     await startup_checks()
 
+    logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
+    await metrics_server()
+
     interrupt_handler = InterruptHandler()
 
     while not interrupt_handler.exit:
@@ -38,6 +49,9 @@ async def main() -> None:
             await asyncio.sleep(60)
             continue
         threshold = await get_oracles_threshold()
+
+        keeper_balance = await get_keeper_balance()
+        metrics.keeper_balance.set(keeper_balance)
 
         await process_rewards(oracles=oracles, threshold=threshold)
         await process_exits(oracles=oracles, threshold=threshold)
