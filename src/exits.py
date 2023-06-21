@@ -13,6 +13,7 @@ from src.common import aiohttp_fetch
 from src.config.settings import VALIDATORS_FETCH_CHUNK_SIZE
 from src.consensus import get_chain_finalized_head, submit_voluntary_exit
 from src.crypto import reconstruct_shared_bls_signature
+from src.metrics import metrics
 from src.typings import Oracle, ValidatorExitShare
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,12 @@ EXITING_STATUSES = [
 
 async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     chain_head = await get_chain_finalized_head()
+
+    metrics.epoch.set(chain_head.epoch)
+    metrics.consensus_block.set(chain_head.consensus_block)
+    metrics.execution_block.set(chain_head.execution_block)
+    metrics.execution_ts.set(chain_head.execution_ts)
+
     validator_exits = await _fetch_validator_exits(oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
     exited_statuses = [x.value for x in EXITING_STATUSES]
@@ -116,4 +123,7 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
             share_index=oracle.index,
         )
         exits.append(validator_exit)
+
+    metrics.processed_exits.inc(len(exits))
+
     return exits

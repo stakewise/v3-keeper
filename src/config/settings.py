@@ -30,3 +30,7 @@ VALIDATORS_FETCH_CHUNK_SIZE = config('VALIDATORS_FETCH_CHUNK_SIZE', default=100,
 
 # sentry config
 SENTRY_DSN = config('SENTRY_DSN', default='')
+
+# Prometheus
+METRICS_HOST = config('METRICS_HOST', default='127.0.0.1')
+METRICS_PORT = config('METRICS_PORT', default=9100)
