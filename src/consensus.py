@@ -1,6 +1,8 @@
 from aiohttp import ClientResponseError, ClientSession
 from eth_typing import BlockNumber, HexStr
 from sw_utils.decorators import backoff_aiohttp_errors
+from sw_utils.typings import ConsensusFork
+from web3 import Web3
 from web3.types import Timestamp
 
 from src.clients import consensus_client
@@ -46,3 +48,12 @@ async def get_chain_finalized_head() -> ChainHead:
         )
 
     raise RuntimeError(f'Failed to fetch slot for epoch {epoch}')
+
+
+@backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
+async def get_consensus_fork(state_id: str) -> ConsensusFork:
+    """Fetches current fork data."""
+    fork_data = (await consensus_client.get_fork_data(state_id))['data']
+    return ConsensusFork(
+        version=Web3.to_bytes(hexstr=fork_data['current_version']), epoch=int(fork_data['epoch'])
+    )
