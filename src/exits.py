@@ -166,6 +166,5 @@ async def _submit_signature(
         )
         return True
     except aiohttp.ClientResponseError as e:
-        logger.error('Failed to process validator %s exit: %s', validator_index, e)
-        logger.exception(e)
+        logger.exception('Failed to process validator %s exit: %s', validator_index, e)
     return False
