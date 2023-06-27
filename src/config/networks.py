@@ -18,8 +18,7 @@ GNO_NETWORKS = [GNOSIS]
 class NetworkConfig:
     SYMBOL: str
     KEEPER_CONTRACT_ADDRESS: ChecksumAddress
-    ORACLES_CONTRACT_ADDRESS: ChecksumAddress
-    ORACLES_GENESIS_BLOCK: BlockNumber
+    KEEPER_GENESIS_BLOCK: BlockNumber
     SECONDS_PER_BLOCK: Decimal
     SLOTS_PER_EPOCH: int
     SECONDS_PER_SLOT: int
@@ -31,8 +30,7 @@ NETWORKS = {
     MAINNET: NetworkConfig(
         SYMBOL='ETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        ORACLES_GENESIS_BLOCK=BlockNumber(0),
+        KEEPER_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         SECONDS_PER_SLOT=12,
@@ -42,12 +40,9 @@ NETWORKS = {
     GOERLI: NetworkConfig(
         SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xfdBDd455dE0D0AB2B24f4A3B450A2a0e82F7a666'
+            '0xDbb29280c1561F44C02a9cB91AC3B8B5B3b45752'
         ),
-        ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x95a4ECB8879B526534e8dB48A75F8EF7E521d8fE'
-        ),
-        ORACLES_GENESIS_BLOCK=BlockNumber(9116861),
+        KEEPER_GENESIS_BLOCK=BlockNumber(9234813),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         SECONDS_PER_SLOT=12,
@@ -57,8 +52,7 @@ NETWORKS = {
     GNOSIS: NetworkConfig(
         SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        ORACLES_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        ORACLES_GENESIS_BLOCK=BlockNumber(0),
+        KEEPER_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal('6.8'),
         SLOTS_PER_EPOCH=16,
         SECONDS_PER_SLOT=5,

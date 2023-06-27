@@ -1,15 +1,19 @@
 import json
+import logging
 import os
 from typing import Dict
 
 import backoff
 from eth_typing import ChecksumAddress
 from hexbytes import HexBytes
-from web3.contract import AsyncContract
+from web3 import Web3
+from web3.types import EventData
 
 from src.clients import execution_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.typings import RewardVoteBody
+
+logger = logging.getLogger(__name__)
 
 
 def _load_abi(abi_path: str) -> Dict:
@@ -37,6 +41,18 @@ class KeeperContract:
         ).transact()  # type: ignore
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    async def submit_vote(
+        self,
+        vote: RewardVoteBody,
+        signatures: bytes,
+    ) -> None:
+        tx = await keeper_contract.update_rewards(vote, signatures)
+        await execution_client.eth.wait_for_transaction_receipt(
+            tx, timeout=DEFAULT_RETRY_TIME
+        )  # type: ignore
+        logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
+
+    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
     async def get_rewards_nonce(self) -> int:
         return await self.contract.functions.rewardsNonce().call()  # type: ignore
 
@@ -45,19 +61,21 @@ class KeeperContract:
         """Checks whether keeper allows next update."""
         return await self.contract.functions.canUpdateRewards().call()  # type: ignore
 
+    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    async def get_oracles_threshold(self) -> int:
+        return await self.contract.functions.requiredOracles().call()
+
+    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    async def get_config_update_events(self) -> list[EventData]:
+        events = await self.contract.events.ConfigUpdated.get_logs(
+            from_block=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK
+        )
+        return events
+
 
 def get_keeper_contract() -> KeeperContract:
     """:returns instance of `Keeper` contract."""
     return KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
 
 
-def get_oracles_contract() -> AsyncContract:
-    """:returns instance of `Oracle` contract."""
-    abi_path = 'abi/IOracles.json'
-    return execution_client.eth.contract(
-        address=NETWORK_CONFIG.ORACLES_CONTRACT_ADDRESS, abi=_load_abi(abi_path)
-    )  # type: ignore
-
-
 keeper_contract = get_keeper_contract()
-oracles_contract = get_oracles_contract()

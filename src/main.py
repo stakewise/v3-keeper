@@ -12,7 +12,8 @@ from src.config.settings import (
     NETWORK_CONFIG,
     SENTRY_DSN,
 )
-from src.execution import get_keeper_balance, get_oracles, get_oracles_threshold
+from src.contracts import keeper_contract
+from src.execution import get_keeper_balance, get_oracles
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
 from src.rewards import process_rewards
@@ -48,7 +49,7 @@ async def main() -> None:
             logger.error('Empty oracles set')
             await asyncio.sleep(60)
             continue
-        threshold = await get_oracles_threshold()
+        threshold = await keeper_contract.get_oracles_threshold()
 
         keeper_balance = await get_keeper_balance()
         metrics.keeper_balance.set(keeper_balance)

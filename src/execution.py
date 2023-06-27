@@ -8,8 +8,8 @@ from web3.types import Wei
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
-from src.contracts import keeper_contract, oracles_contract
-from src.typings import Oracle, RewardVoteBody
+from src.contracts import keeper_contract
+from src.typings import Oracle
 
 logger = logging.getLogger(__name__)
 
@@ -17,22 +17,14 @@ SECONDS_PER_MONTH: int = 2628000
 APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
 
 
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def get_oracles_threshold() -> int:
-    return await oracles_contract.functions.requiredOracles().call()
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def get_oracles() -> list[Oracle]:
-    events = await oracles_contract.events.ConfigUpdated.get_logs(
-        from_block=NETWORK_CONFIG.ORACLES_GENESIS_BLOCK
-    )
+    events = await keeper_contract.get_config_update_events()
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
 
     # fetch IPFS record
     ipfs_hash = events[-1]['args']['configIpfsHash']
-    config = await ipfs_fetch_client.fetch_json(ipfs_hash)
+    config = await _fetch_ipfs_config(ipfs_hash)
 
     oracles = []
     for index, oracle_config in enumerate(config['oracles']):
@@ -45,18 +37,6 @@ async def get_oracles() -> list[Oracle]:
         oracles.append(oracle)
 
     return oracles
-
-
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-async def submit_vote(
-    vote: RewardVoteBody,
-    signatures: bytes,
-) -> None:
-    tx = await keeper_contract.update_rewards(vote, signatures)
-    await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=DEFAULT_RETRY_TIME
-    )  # type: ignore
-    logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
@@ -77,3 +57,8 @@ async def check_keeper_balance() -> None:
             Web3.from_wei(keeper_min_balance, 'ether'),
             symbol,
         )
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+async def _fetch_ipfs_config(ipfs_hash) -> dict:
+    return await ipfs_fetch_client.fetch_json(ipfs_hash)
