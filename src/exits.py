@@ -135,7 +135,9 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
 async def _get_fork_epochs() -> tuple[int, int]:
     current_fork = await get_consensus_fork(state_id='head')
     prev_fork_slot: int = (
-        (current_fork.epoch * NETWORK_CONFIG.SLOTS_PER_EPOCH) + NETWORK_CONFIG.SLOTS_PER_EPOCH - 1
+        ((current_fork.epoch - 1) * NETWORK_CONFIG.SLOTS_PER_EPOCH)
+        + NETWORK_CONFIG.SLOTS_PER_EPOCH
+        - 1
     )
     previous_fork = await get_consensus_fork(state_id=str(prev_fork_slot))
     return current_fork.epoch, previous_fork.epoch
@@ -152,9 +154,8 @@ async def _submit_signature(
             signature=exit_signature,
         )
         return True
-    except aiohttp.ClientResponseError as e:
-        logger.error('Failed to process validator %s exit: %s', validator_index, e)
-        logger.exception(e)
+    except aiohttp.ClientResponseError:
+        pass
 
     # try with previous fork version
     try:
