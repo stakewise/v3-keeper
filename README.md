@@ -82,6 +82,7 @@ Keeper supports monitoring using Prometheus by providing a `/metrics` endpoint t
 1. Keeper application running and accessible.
 1. Prometheus server installed and running.
 1. Basic knowledge of how to configure Prometheus targets.
+1. [Grafana Dashboard](https://grafana.com/grafana/dashboards/19059-v3-keeper-oracle/) for `v3-keeper` installed
 
 Setup Keeper for Monitoring:
 
