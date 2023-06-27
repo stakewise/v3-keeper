@@ -7,11 +7,16 @@ import aiohttp
 from eth_typing.bls import BLSSignature
 from sw_utils import ValidatorStatus
 from web3 import Web3
+from web3.types import HexStr
 
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
-from src.config.settings import VALIDATORS_FETCH_CHUNK_SIZE
-from src.consensus import get_chain_finalized_head, submit_voluntary_exit
+from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
+from src.consensus import (
+    get_chain_finalized_head,
+    get_consensus_fork,
+    submit_voluntary_exit,
+)
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
 from src.typings import Oracle, ValidatorExitShare
@@ -52,6 +57,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     if not validator_exits:
         return
 
+    current_fork_epoch, previous_fork_epoch = await _get_fork_epochs()
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
 
@@ -64,18 +70,15 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
         signatures = {}
         for share in shares:
             signatures[share.share_index] = share.exit_signature_share
+        exit_signature = reconstruct_shared_bls_signature(signatures)
 
-        try:
-            exit_signature = reconstruct_shared_bls_signature(signatures)
-
-            await submit_voluntary_exit(
-                epoch=0, validator_index=validator_index, signature=Web3.to_hex(exit_signature)
-            )
+        if await _submit_signature(
+            current_fork_epoch=current_fork_epoch,
+            previous_fork_epoch=previous_fork_epoch,
+            validator_index=validator_index,
+            exit_signature=Web3.to_hex(exit_signature),
+        ):
             logger.info('Validator %s exit successfully initiated', validator_index)
-
-        except Exception as e:
-            logger.error('Failed to process validator %s exit: %s', validator_index, e)
-            logger.exception(e)
 
     logger.info('Validator exits has been successfully processed')
 
@@ -127,3 +130,41 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
     metrics.processed_exits.inc(len(exits))
 
     return exits
+
+
+async def _get_fork_epochs() -> tuple[int, int]:
+    current_fork = await get_consensus_fork(state_id='head')
+    prev_fork_slot: int = (
+        ((current_fork.epoch - 1) * NETWORK_CONFIG.SLOTS_PER_EPOCH)
+        + NETWORK_CONFIG.SLOTS_PER_EPOCH
+        - 1
+    )
+    previous_fork = await get_consensus_fork(state_id=str(prev_fork_slot))
+    return current_fork.epoch, previous_fork.epoch
+
+
+async def _submit_signature(
+    current_fork_epoch: int, previous_fork_epoch: int, validator_index: int, exit_signature: HexStr
+) -> bool:
+    # try with current fork version
+    try:
+        await submit_voluntary_exit(
+            epoch=current_fork_epoch,
+            validator_index=validator_index,
+            signature=exit_signature,
+        )
+        return True
+    except aiohttp.ClientResponseError:
+        pass
+
+    # try with previous fork version
+    try:
+        await submit_voluntary_exit(
+            epoch=previous_fork_epoch,
+            validator_index=validator_index,
+            signature=exit_signature,
+        )
+        return True
+    except aiohttp.ClientResponseError as e:
+        logger.exception('Failed to process validator %s exit: %s', validator_index, e)
+    return False
