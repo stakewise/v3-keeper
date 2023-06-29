@@ -41,22 +41,22 @@ async def main() -> None:
     logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
     await metrics_server()
 
-    interrupt_handler = InterruptHandler()
+    with InterruptHandler() as interrupt_handler:
+        while not interrupt_handler.exit:
+            oracles = await get_oracles()
+            if not oracles:
+                logger.error('Empty oracles set')
+                await asyncio.sleep(60)
+                continue
+            rewards_threshold = await keeper_contract.get_rewards_threshold()
+            validators_threshold = await keeper_contract.get_validators_threshold()
 
-    while not interrupt_handler.exit:
-        oracles = await get_oracles()
-        if not oracles:
-            logger.error('Empty oracles set')
-            await asyncio.sleep(60)
-            continue
-        threshold = await keeper_contract.get_oracles_threshold()
+            keeper_balance = await get_keeper_balance()
+            metrics.keeper_balance.set(keeper_balance)
 
-        keeper_balance = await get_keeper_balance()
-        metrics.keeper_balance.set(keeper_balance)
-
-        await process_rewards(oracles=oracles, threshold=threshold)
-        await process_exits(oracles=oracles, threshold=threshold)
-        await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
+            await process_rewards(oracles=oracles, threshold=rewards_threshold)
+            await process_exits(oracles=oracles, threshold=validators_threshold)
+            await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
 
 
 if __name__ == '__main__':

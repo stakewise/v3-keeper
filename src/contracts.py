@@ -62,13 +62,17 @@ class KeeperContract:
         return await self.contract.functions.canUpdateRewards().call()  # type: ignore
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
-    async def get_oracles_threshold(self) -> int:
-        return await self.contract.functions.requiredOracles().call()
+    async def get_rewards_threshold(self) -> int:
+        return await self.contract.functions.rewardsMinOracles().call()
+
+    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    async def get_validators_threshold(self) -> int:
+        return await self.contract.functions.validatorsMinOracles().call()
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
     async def get_config_update_events(self) -> list[EventData]:
-        events = await self.contract.events.ConfigUpdated.get_logs(
-            from_block=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK
+        events = await self.contract.events.ConfigUpdated.get_logs(  # type: ignore
+            fromBlock=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK
         )
         return events
 
