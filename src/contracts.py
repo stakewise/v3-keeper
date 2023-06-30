@@ -6,7 +6,6 @@ from typing import Dict
 import backoff
 from eth_typing import ChecksumAddress
 from hexbytes import HexBytes
-from web3 import Web3
 from web3.types import EventData
 
 from src.clients import execution_client
@@ -27,17 +26,6 @@ class KeeperContract:
 
     def __init__(self, address: ChecksumAddress):
         self.contract = execution_client.eth.contract(address=address, abi=_load_abi(self.abi_path))
-
-    async def submit_vote(
-        self,
-        vote: RewardVoteBody,
-        signatures: bytes,
-    ) -> None:
-        tx = await self.update_rewards(vote, signatures)
-        await execution_client.eth.wait_for_transaction_receipt(
-            tx, timeout=DEFAULT_RETRY_TIME
-        )  # type: ignore
-        logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
 
     @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
     async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:

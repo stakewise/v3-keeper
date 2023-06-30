@@ -9,6 +9,7 @@ from web3.types import Timestamp
 
 from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
+from src.execution import submit_vote
 from src.metrics import metrics
 from src.typings import Oracle, RewardVote, RewardVoteBody
 
@@ -58,7 +59,7 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
             signatures += vote.signature
             signatures_count += 1
 
-    await keeper_contract.submit_vote(
+    await submit_vote(
         winner,
         signatures=signatures,
     )

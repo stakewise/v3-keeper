@@ -9,7 +9,7 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract
-from src.typings import Oracle
+from src.typings import Oracle, RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
@@ -62,3 +62,14 @@ async def check_keeper_balance() -> None:
 @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
 async def _fetch_ipfs_config(ipfs_hash) -> dict:
     return await ipfs_fetch_client.fetch_json(ipfs_hash)
+
+
+async def submit_vote(
+    vote: RewardVoteBody,
+    signatures: bytes,
+) -> None:
+    tx = await keeper_contract.update_rewards(vote, signatures)
+    await execution_client.eth.wait_for_transaction_receipt(
+        tx, timeout=DEFAULT_RETRY_TIME
+    )  # type: ignore
+    logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
