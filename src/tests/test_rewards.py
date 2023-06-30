@@ -26,10 +26,7 @@ async def test_early():
         keeper_contract,
         'can_update_rewards',
         return_value=False,
-    ), patch.object(
-        keeper_contract,
-        'submit_vote',
-    ) as submit_mock:
+    ), patch('src.rewards.submit_vote') as submit_mock:
         await process_rewards(oracles, 3)
         submit_mock.assert_not_called()
 
@@ -70,9 +67,9 @@ async def test_basic():
     ), patch.object(keeper_contract, 'get_rewards_nonce', return_value=nonce), patch(
         'src.rewards._fetch_reward_votes',
         return_value=votes,
-    ), patch.object(
-        keeper_contract,
-        'submit_vote',
+    ), patch(
+        'src.rewards.submit_vote',
+        return_value=None,
     ) as submit_mock:
         await process_rewards(oracles, 3)
 
