@@ -46,7 +46,7 @@ class KeeperContract:
         vote: RewardVoteBody,
         signatures: bytes,
     ) -> None:
-        tx = await keeper_contract.update_rewards(vote, signatures)
+        tx = await self.contract.update_rewards(vote, signatures)
         await execution_client.eth.wait_for_transaction_receipt(
             tx, timeout=DEFAULT_RETRY_TIME
         )  # type: ignore
