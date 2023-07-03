@@ -112,10 +112,10 @@ async def _fetch_vote(session, oracle) -> RewardVote | None:
             )
             return None
 
-    metrics.oracle_avg_rewards_per_second.labels(oracle_adress=oracle.address).set(
+    metrics.oracle_avg_rewards_per_second.labels(oracle_address=oracle.address).set(
         data['avg_reward_per_second']
     )
-    metrics.oracle_update_timestamp.labels(oracle_adress=oracle.address).set(
+    metrics.oracle_update_timestamp.labels(oracle_address=oracle.address).set(
         data['update_timestamp']
     )
 
