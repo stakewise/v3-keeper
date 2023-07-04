@@ -40,9 +40,9 @@ NETWORKS = {
     GOERLI: NetworkConfig(
         SYMBOL='GoerliETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xDbb29280c1561F44C02a9cB91AC3B8B5B3b45752'
+            '0xb39CEBd50642389ceE6C058C2134e53417ce053a'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(9234813),
+        KEEPER_GENESIS_BLOCK=BlockNumber(9290253),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         SECONDS_PER_SLOT=12,
