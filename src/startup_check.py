@@ -1,9 +1,9 @@
 import asyncio
 import logging
 
-import backoff
 from aiohttp import ClientSession, ClientTimeout
 from sw_utils import IpfsFetchClient
+from sw_utils.tenacity_decorators import retry_aiohttp_errors
 
 from src.accounts import keeper_account
 from src.clients import consensus_client, execution_client
@@ -24,7 +24,7 @@ async def startup_checks():
     logger.info('Checking keeper account %s...', keeper_account.address)
     await check_keeper_balance()
 
-    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_execution_node():
         logger.info('Checking connection to execution node...')
         block_number = await execution_client.eth.block_number
@@ -36,7 +36,7 @@ async def startup_checks():
 
     await _check_execution_node()
 
-    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_consensus_node():
         logger.info('Checking connection to consensus node...')
         data = await consensus_client.get_finality_checkpoint()
@@ -48,7 +48,7 @@ async def startup_checks():
 
     await _check_consensus_node()
 
-    @backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes():
         logger.info('Checking connection to ipfs fetch nodes...')
 

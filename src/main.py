@@ -24,7 +24,6 @@ logging.basicConfig(
     datefmt='%m-%d %H:%M',
     level=LOG_LEVEL,
 )
-logging.getLogger('backoff').addHandler(logging.StreamHandler())
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +61,8 @@ async def main() -> None:
 if __name__ == '__main__':
     if SENTRY_DSN:
         import sentry_sdk
-        from sentry_sdk.integrations.logging import ignore_logger
 
         sentry_sdk.init(SENTRY_DSN, traces_sample_rate=0.1)
         sentry_sdk.set_tag('network', NETWORK)
-        ignore_logger('backoff')
 
     asyncio.run(main())
