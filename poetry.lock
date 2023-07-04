@@ -2128,7 +2128,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "sw-utils"
-version = "0.3.9"
+version = "0.3.10"
 description = "StakeWise Python utils"
 optional = false
 python-versions = "^3.10"
@@ -2140,14 +2140,29 @@ backoff = "^2.2.1"
 ipfshttpclient = "^0.8.0a2"
 milagro-bls-binding = "==1.9.0"
 py-ecc = "^6.0.0"
+tenacity = "==8.2.2"
 types-requests = "^2.28.11.15"
 web3 = "==6.5.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/stakewise/sw-utils.git"
-reference = "v0.3.9"
-resolved_reference = "76f083f553b903daf9d82424549797571f73d62e"
+reference = "v0.3.10"
+resolved_reference = "b7ae8214fc9314f2a1c51c80a6cf93b846fdade7"
+
+[[package]]
+name = "tenacity"
+version = "8.2.2"
+description = "Retry code until it succeeds"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "tenacity-8.2.2-py3-none-any.whl", hash = "sha256:2f277afb21b851637e8f52e6a613ff08734c347dc19ade928e519d7d2d8569b0"},
+    {file = "tenacity-8.2.2.tar.gz", hash = "sha256:43af037822bd0029025877f3b2d97cc4d7bb0c2991000a3d59d71517c5c969e0"},
+]
+
+[package.extras]
+doc = ["reno", "sphinx", "tornado (>=4.5)"]
 
 [[package]]
 name = "toml"
@@ -2562,4 +2577,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9e170d63da11ea7f50d27fc37a29ae52d3ffb6d0cf943e4a99f358c4935b01f6"
+content-hash = "85a60c678e377499575ae2fa42d0db3ae8189c50bbdfee341ef049af2a272bab"

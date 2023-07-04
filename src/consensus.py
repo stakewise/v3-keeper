@@ -1,6 +1,6 @@
 from aiohttp import ClientResponseError, ClientSession
 from eth_typing import BlockNumber, HexStr
-from sw_utils.decorators import backoff_aiohttp_errors
+from sw_utils.tenacity_decorators import retry_aiohttp_errors
 from sw_utils.typings import ConsensusFork
 from web3 import Web3
 from web3.types import Timestamp
@@ -10,7 +10,7 @@ from src.config.settings import CONSENSUS_ENDPOINT, DEFAULT_RETRY_TIME, NETWORK_
 from src.typings import ChainHead
 
 
-@backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
+@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def submit_voluntary_exit(epoch: int, validator_index: int, signature: HexStr) -> None:
     endpoint = f'{CONSENSUS_ENDPOINT}/eth/v1/beacon/pool/voluntary_exits'
     data = {
@@ -22,7 +22,7 @@ async def submit_voluntary_exit(epoch: int, validator_index: int, signature: Hex
             response.raise_for_status()
 
 
-@backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
+@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_chain_finalized_head() -> ChainHead:
     """Fetches the fork safe chain head."""
     checkpoints = await consensus_client.get_finality_checkpoint()
@@ -50,7 +50,7 @@ async def get_chain_finalized_head() -> ChainHead:
     raise RuntimeError(f'Failed to fetch slot for epoch {epoch}')
 
 
-@backoff_aiohttp_errors(max_time=DEFAULT_RETRY_TIME)
+@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_consensus_fork(state_id: str) -> ConsensusFork:
     """Fetches current fork data."""
     fork_data = (await consensus_client.get_fork_data(state_id))['data']

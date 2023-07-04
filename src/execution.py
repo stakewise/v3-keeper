@@ -1,7 +1,7 @@
 import logging
 
-import backoff
 from eth_keys.datatypes import PublicKey
+from sw_utils.tenacity_decorators import retry_aiohttp_errors
 from web3 import Web3
 from web3.types import Wei
 
@@ -9,6 +9,7 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract
+from src.decorators import retry_ipfs_exception
 from src.typings import Oracle, RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ async def get_oracles() -> list[Oracle]:
     return oracles
 
 
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_keeper_balance() -> Wei:
     return await execution_client.eth.get_balance(keeper_account.address)  # type: ignore
 
@@ -59,7 +60,7 @@ async def check_keeper_balance() -> None:
         )
 
 
-@backoff.on_exception(backoff.expo, Exception, max_time=DEFAULT_RETRY_TIME)
+@retry_ipfs_exception(delay=DEFAULT_RETRY_TIME)
 async def _fetch_ipfs_config(ipfs_hash) -> dict:
     return await ipfs_fetch_client.fetch_json(ipfs_hash)
 

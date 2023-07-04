@@ -20,7 +20,7 @@ NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 IPFS_FETCH_ENDPOINTS = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
-    default='https://stakewise.infura-ipfs.io/,'
+    default='https://stakewise-v3.infura-ipfs.io/,'
     'http://cloudflare-ipfs.com,'
     'https://gateway.pinata.cloud,https://ipfs.io',
 )
