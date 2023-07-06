@@ -6,11 +6,11 @@ from sw_utils import IpfsFetchClient
 from sw_utils.tenacity_decorators import retry_aiohttp_errors
 
 from src.accounts import keeper_account
-from src.clients import consensus_client, execution_client
+from src.clients import get_consensus_client, get_execution_client
 from src.config.settings import (
-    CONSENSUS_ENDPOINT,
+    CONSENSUS_ENDPOINTS,
     DEFAULT_RETRY_TIME,
-    EXECUTION_ENDPOINT,
+    EXECUTION_ENDPOINTS,
     IPFS_FETCH_ENDPOINTS,
 )
 from src.execution import check_keeper_balance, get_oracles
@@ -20,31 +20,81 @@ logger = logging.getLogger(__name__)
 IPFS_HASH_EXAMPLE = 'QmawUdo17Fvo7xa6ARCUSMV1eoVwPtVuzx8L8Crj2xozWm'
 
 
+# pylint: disable-next=too-many-statements
 async def startup_checks():
     logger.info('Checking keeper account %s...', keeper_account.address)
     await check_keeper_balance()
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_execution_node():
-        logger.info('Checking connection to execution node...')
-        block_number = await execution_client.eth.block_number
-        logger.info(
-            'Connected to execution node at %s. Current block number: %s',
-            EXECUTION_ENDPOINT,
-            block_number,
-        )
+        done = False
+        while True:
+            for execution_endpoint in EXECUTION_ENDPOINTS:
+                try:
+                    execution_client = get_execution_client([execution_endpoint])
+
+                    syncing = await execution_client.eth.syncing
+                    if syncing is True:
+                        logger.warning(
+                            'The execution node located at %s '
+                            'has not completed synchronization yet.',
+                            execution_endpoint,
+                        )
+                        continue
+                    block_number = await execution_client.eth.block_number  # type: ignore
+                    logger.info(
+                        'Connected to execution node at %s. Current block number: %s',
+                        execution_endpoint,
+                        block_number,
+                    )
+                    done = True
+                except Exception as e:
+                    logger.warning(
+                        'Failed to connect to execution node at %s. %s',
+                        execution_endpoint,
+                        e,
+                    )
+            if done:
+                return
+            logger.warning('Failed to connect to execution nodes. Retrying in 10 seconds...')
+            await asyncio.sleep(10)
 
     await _check_execution_node()
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_consensus_node():
-        logger.info('Checking connection to consensus node...')
-        data = await consensus_client.get_finality_checkpoint()
-        logger.info(
-            'Connected to consensus node at %s. Finalized epoch: %s',
-            CONSENSUS_ENDPOINT,
-            data['data']['finalized']['epoch'],
-        )
+        done = False
+        while True:
+            for consensus_endpoint in CONSENSUS_ENDPOINTS:
+                try:
+                    consensus_client = get_consensus_client([consensus_endpoint])
+                    syncing = await consensus_client.get_syncing()
+                    if syncing['data']['is_syncing'] is True:
+                        logger.warning(
+                            'The consensus node located at %s '
+                            'has not completed synchronization yet. '
+                            'The remaining synchronization distance is %s.',
+                            consensus_endpoint,
+                            syncing['data']['sync_distance'],
+                        )
+                        continue
+                    data = await consensus_client.get_finality_checkpoint()
+                    logger.info(
+                        'Connected to consensus node at %s. Finalized epoch: %s',
+                        consensus_endpoint,
+                        data['data']['finalized']['epoch'],
+                    )
+                    done = True
+                except Exception as e:
+                    logger.warning(
+                        'Failed to connect to consensus node at %s. %s',
+                        consensus_endpoint,
+                        e,
+                    )
+            if done:
+                return
+            logger.warning('Failed to connect to consensus nodes. Retrying in 10 seconds...')
+            await asyncio.sleep(10)
 
     await _check_consensus_node()
 
