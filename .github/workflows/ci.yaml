@@ -42,8 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NETWORK: 'goerli'
-      EXECUTION_ENDPOINT: 'http://example.com'
-      CONSENSUS_ENDPOINT: 'http://example.com'
+      EXECUTION_ENDPOINTS: 'http://example.com'
+      CONSENSUS_ENDPOINTS: 'http://example.com'
       PRIVATE_KEY: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     steps:
       - name: Checkout code

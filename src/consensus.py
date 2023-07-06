@@ -1,4 +1,6 @@
-from aiohttp import ClientResponseError, ClientSession
+import logging
+
+from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from eth_typing import BlockNumber, HexStr
 from sw_utils.tenacity_decorators import retry_aiohttp_errors
 from sw_utils.typings import ConsensusFork
@@ -6,20 +8,28 @@ from web3 import Web3
 from web3.types import Timestamp
 
 from src.clients import consensus_client
-from src.config.settings import CONSENSUS_ENDPOINT, DEFAULT_RETRY_TIME, NETWORK_CONFIG
+from src.config.settings import CONSENSUS_ENDPOINTS, DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.typings import ChainHead
+
+logger = logging.getLogger(__name__)
 
 
 @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def submit_voluntary_exit(epoch: int, validator_index: int, signature: HexStr) -> None:
-    endpoint = f'{CONSENSUS_ENDPOINT}/eth/v1/beacon/pool/voluntary_exits'
-    data = {
-        'message': {'epoch': str(epoch), 'validator_index': str(validator_index)},
-        'signature': signature,
-    }
-    async with ClientSession() as session:
-        async with session.post(endpoint, json=data) as response:
-            response.raise_for_status()
+    for consensus_endpoint in CONSENSUS_ENDPOINTS:
+        try:
+            endpoint = f'{consensus_endpoint}/eth/v1/beacon/pool/voluntary_exits'
+            data = {
+                'message': {'epoch': str(epoch), 'validator_index': str(validator_index)},
+                'signature': signature,
+            }
+            async with ClientSession() as session:
+                async with session.post(endpoint, json=data) as response:
+                    response.raise_for_status()
+                    return
+        except ClientResponseError as e:
+            logger.error(repr(e))
+    raise ClientConnectionError("Can't submit_voluntary_exit to consensus nodes")
 
 
 @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)

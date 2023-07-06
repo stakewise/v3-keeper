@@ -39,7 +39,6 @@ You can use any of the tools available for generating the hot wallet. For exampl
     1. [Generate wallet](https://metamask.zendesk.com/hc/en-us/articles/360015289452-How-to-create-an-additional-account-in-your-wallet)
     2. [Export wallet](https://metamask.zendesk.com/hc/en-us/articles/360015289632-How-to-export-an-account-s-private-key)
 - [MyEtherWallet Offline](https://help.myetherwallet.com/en/articles/6512619-using-mew-offline-current-mew-version-6)
-- [Vanity ETH](https://github.com/bokub/vanity-eth)
 
 ### Step 2. Prepare .env file
 

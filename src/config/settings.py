@@ -3,8 +3,8 @@ from decouple import Choices, Csv, config
 from src.config.networks import GOERLI, NETWORKS, NetworkConfig
 
 # connections
-EXECUTION_ENDPOINT = config('EXECUTION_ENDPOINT')
-CONSENSUS_ENDPOINT = config('CONSENSUS_ENDPOINT')
+EXECUTION_ENDPOINTS = config('EXECUTION_ENDPOINTS', cast=Csv())
+CONSENSUS_ENDPOINTS = config('CONSENSUS_ENDPOINTS', cast=Csv())
 
 # keeper
 PRIVATE_KEY = config('PRIVATE_KEY')
