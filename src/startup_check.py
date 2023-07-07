@@ -3,7 +3,7 @@ import logging
 
 from aiohttp import ClientSession, ClientTimeout
 from sw_utils import IpfsFetchClient
-from sw_utils.tenacity_decorators import retry_aiohttp_errors
+from sw_utils.decorators import retry_aiohttp_errors
 
 from src.accounts import keeper_account
 from src.clients import get_consensus_client, get_execution_client

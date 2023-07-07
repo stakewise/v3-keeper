@@ -171,17 +171,6 @@ tests = ["attrs[tests-no-zope]", "zope-interface"]
 tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
 
 [[package]]
-name = "backoff"
-version = "2.2.1"
-description = "Function decoration for backoff and retry"
-optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8"},
-    {file = "backoff-2.2.1.tar.gz", hash = "sha256:03f829f5bb1923180821643f8753b0502c3b682293992485b0eef2807afa5cba"},
-]
-
-[[package]]
 name = "bandit"
 version = "1.7.4"
 description = "Security oriented static analyser for python code."
@@ -2128,7 +2117,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "sw-utils"
-version = "0.3.12"
+version = "0.3.14"
 description = "StakeWise Python utils"
 optional = false
 python-versions = "^3.10"
@@ -2136,10 +2125,10 @@ files = []
 develop = false
 
 [package.dependencies]
-backoff = "^2.2.1"
 ipfshttpclient = "^0.8.0a2"
 milagro-bls-binding = "==1.9.0"
 py-ecc = "^6.0.0"
+pyrsistent = "0.19.3"
 tenacity = "==8.2.2"
 types-requests = "^2.28.11.15"
 web3 = "==6.5.0"
@@ -2147,8 +2136,8 @@ web3 = "==6.5.0"
 [package.source]
 type = "git"
 url = "https://github.com/stakewise/sw-utils.git"
-reference = "v0.3.12"
-resolved_reference = "74b02e85e8c71e1be17241cded206a9a449c9d0f"
+reference = "v0.3.14"
+resolved_reference = "cb2c152e5a9b5880130cae895291531387714ac6"
 
 [[package]]
 name = "tenacity"
@@ -2577,4 +2566,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "216a1654923c24ca19fbc3990df566e0c43aa74abb1ec9884d6bca11b1f93f22"
+content-hash = "e5d3dce9085f60b01b89e13500bbef2661f8a35c179b2f554e277defe9c6d20a"

@@ -1,7 +1,7 @@
 import logging
 
 from sw_utils import IpfsException
-from sw_utils.tenacity_decorators import custom_before_log
+from sw_utils.decorators import custom_before_log
 from tenacity import retry, retry_if_exception_type, stop_after_delay, wait_exponential
 
 from src.config.settings import DEFAULT_RETRY_TIME

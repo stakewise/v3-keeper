@@ -5,7 +5,7 @@ from typing import Dict
 
 from eth_typing import ChecksumAddress
 from hexbytes import HexBytes
-from sw_utils.tenacity_decorators import retry_aiohttp_errors
+from sw_utils.decorators import retry_aiohttp_errors
 from web3.types import EventData
 
 from src.clients import execution_client
