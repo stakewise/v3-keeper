@@ -1,7 +1,7 @@
 import logging
 
 from eth_keys.datatypes import PublicKey
-from sw_utils.tenacity_decorators import retry_aiohttp_errors
+from sw_utils.decorators import retry_aiohttp_errors
 from web3 import Web3
 from web3.types import Wei
 

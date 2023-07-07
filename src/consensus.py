@@ -2,7 +2,7 @@ import logging
 
 from aiohttp import ClientConnectionError, ClientResponseError, ClientSession
 from eth_typing import BlockNumber, HexStr
-from sw_utils.tenacity_decorators import retry_aiohttp_errors
+from sw_utils.decorators import retry_aiohttp_errors
 from sw_utils.typings import ConsensusFork
 from web3 import Web3
 from web3.types import Timestamp
