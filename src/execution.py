@@ -10,7 +10,7 @@ from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract
 from src.decorators import retry_ipfs_exception
-from src.typings import Oracle, RewardVoteBody
+from src.typings import Oracle, OracleConfig, RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ SECONDS_PER_MONTH: int = 2628000
 APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
 
 
-async def get_oracles() -> list[Oracle]:
+async def get_oracle_config() -> OracleConfig:
     events = await keeper_contract.get_config_update_events()
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
@@ -37,7 +37,16 @@ async def get_oracles() -> list[Oracle]:
         )
         oracles.append(oracle)
 
-    return oracles
+    exit_signature_recover_threshold = config['exit_signature_recover_threshold']
+
+    return OracleConfig(
+        oracles=oracles, exit_signature_recover_threshold=exit_signature_recover_threshold
+    )
+
+
+async def get_oracles() -> list[Oracle]:
+    oracle_config = await get_oracle_config()
+    return oracle_config.oracles
 
 
 @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
