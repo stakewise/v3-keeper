@@ -21,7 +21,7 @@ from src.startup_check import startup_checks
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%m-%d %H:%M',
+    datefmt='%Y-%m-%d %H:%M:%S',
     level=LOG_LEVEL,
 )
 
