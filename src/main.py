@@ -13,7 +13,7 @@ from src.config.settings import (
     SENTRY_DSN,
 )
 from src.contracts import keeper_contract
-from src.execution import get_keeper_balance, get_oracles
+from src.execution import get_keeper_balance, get_oracle_config
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
 from src.rewards import process_rewards
@@ -21,7 +21,7 @@ from src.startup_check import startup_checks
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%m-%d %H:%M',
+    datefmt='%Y-%m-%d %H:%M:%S',
     level=LOG_LEVEL,
 )
 
@@ -42,19 +42,21 @@ async def main() -> None:
 
     with InterruptHandler() as interrupt_handler:
         while not interrupt_handler.exit:
-            oracles = await get_oracles()
+            oracle_config = await get_oracle_config()
+            oracles = oracle_config.oracles
+
             if not oracles:
                 logger.error('Empty oracles set')
                 await asyncio.sleep(60)
                 continue
             rewards_threshold = await keeper_contract.get_rewards_threshold()
-            validators_threshold = await keeper_contract.get_validators_threshold()
+            exit_signature_recover_threshold = oracle_config.exit_signature_recover_threshold
 
             keeper_balance = await get_keeper_balance()
             metrics.keeper_balance.set(keeper_balance)
 
             await process_rewards(oracles=oracles, threshold=rewards_threshold)
-            await process_exits(oracles=oracles, threshold=validators_threshold)
+            await process_exits(oracles=oracles, threshold=exit_signature_recover_threshold)
             await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
 
 
