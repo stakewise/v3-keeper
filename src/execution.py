@@ -44,11 +44,6 @@ async def get_oracle_config() -> OracleConfig:
     )
 
 
-async def get_oracles() -> list[Oracle]:
-    oracle_config = await get_oracle_config()
-    return oracle_config.oracles
-
-
 @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_keeper_balance() -> Wei:
     return await execution_client.eth.get_balance(keeper_account.address)  # type: ignore
