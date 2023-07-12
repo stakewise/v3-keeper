@@ -12,11 +12,7 @@ from web3.types import HexStr
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
 from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
-from src.consensus import (
-    get_chain_finalized_head,
-    get_consensus_fork,
-    submit_voluntary_exit,
-)
+from src.consensus import get_chain_finalized_head, get_consensus_fork
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
 from src.typings import Oracle, ValidatorExitShare
@@ -148,7 +144,7 @@ async def _submit_signature(
 ) -> bool:
     # try with current fork version
     try:
-        await submit_voluntary_exit(
+        await consensus_client.submit_voluntary_exit(
             epoch=current_fork_epoch,
             validator_index=validator_index,
             signature=exit_signature,
@@ -159,7 +155,7 @@ async def _submit_signature(
 
     # try with previous fork version
     try:
-        await submit_voluntary_exit(
+        await consensus_client.submit_voluntary_exit(
             epoch=previous_fork_epoch,
             validator_index=validator_index,
             signature=exit_signature,
