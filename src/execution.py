@@ -1,7 +1,6 @@
 import logging
 
 from eth_keys.datatypes import PublicKey
-from sw_utils.decorators import retry_aiohttp_errors
 from web3 import Web3
 from web3.types import Wei
 
@@ -44,9 +43,8 @@ async def get_oracle_config() -> OracleConfig:
     )
 
 
-@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_keeper_balance() -> Wei:
-    return await execution_client.eth.get_balance(keeper_account.address)  # type: ignore
+    return await execution_client.eth.get_balance(keeper_account.address)
 
 
 async def check_keeper_balance() -> None:
@@ -74,7 +72,5 @@ async def submit_vote(
     signatures: bytes,
 ) -> None:
     tx = await keeper_contract.update_rewards(vote, signatures)
-    await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=DEFAULT_RETRY_TIME
-    )  # type: ignore
+    await execution_client.eth.wait_for_transaction_receipt(tx, timeout=DEFAULT_RETRY_TIME)
     logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))

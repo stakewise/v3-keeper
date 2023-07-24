@@ -2,19 +2,17 @@ import logging
 
 from aiohttp import ClientResponseError
 from eth_typing import BlockNumber
-from sw_utils.decorators import retry_aiohttp_errors
 from sw_utils.typings import ConsensusFork
 from web3 import Web3
 from web3.types import Timestamp
 
 from src.clients import consensus_client
-from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
+from src.config.settings import NETWORK_CONFIG
 from src.typings import ChainHead
 
 logger = logging.getLogger(__name__)
 
 
-@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_chain_finalized_head() -> ChainHead:
     """Fetches the fork safe chain head."""
     checkpoints = await consensus_client.get_finality_checkpoint()
@@ -42,7 +40,6 @@ async def get_chain_finalized_head() -> ChainHead:
     raise RuntimeError(f'Failed to fetch slot for epoch {epoch}')
 
 
-@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def get_consensus_fork(state_id: str) -> ConsensusFork:
     """Fetches current fork data."""
     fork_data = (await consensus_client.get_fork_data(state_id))['data']
