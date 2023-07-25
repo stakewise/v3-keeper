@@ -5,11 +5,10 @@ from typing import Dict
 
 from eth_typing import ChecksumAddress
 from hexbytes import HexBytes
-from sw_utils.decorators import retry_aiohttp_errors
 from web3.types import EventData
 
 from src.clients import execution_client
-from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
+from src.config.settings import NETWORK_CONFIG
 from src.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,6 @@ class KeeperContract:
     def __init__(self, address: ChecksumAddress):
         self.contract = execution_client.eth.contract(address=address, abi=_load_abi(self.abi_path))
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:
         return await self.contract.functions.updateRewards(
             (
@@ -39,24 +37,19 @@ class KeeperContract:
             ),
         ).transact()  # type: ignore
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def get_rewards_nonce(self) -> int:
-        return await self.contract.functions.rewardsNonce().call()  # type: ignore
+        return await self.contract.functions.rewardsNonce().call()
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def can_update_rewards(self) -> bool:
         """Checks whether keeper allows next update."""
-        return await self.contract.functions.canUpdateRewards().call()  # type: ignore
+        return await self.contract.functions.canUpdateRewards().call()
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def get_rewards_threshold(self) -> int:
         return await self.contract.functions.rewardsMinOracles().call()
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def get_validators_threshold(self) -> int:
         return await self.contract.functions.validatorsMinOracles().call()
 
-    @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def get_config_update_events(self) -> list[EventData]:
         events = await self.contract.events.ConfigUpdated.get_logs(  # type: ignore
             fromBlock=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK

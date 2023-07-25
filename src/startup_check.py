@@ -86,7 +86,7 @@ async def startup_checks():
                     execution_endpoint,
                 )
                 return False
-            block_number = await execution_client.eth.block_number  # type: ignore
+            block_number = await execution_client.eth.block_number
             logger.info(
                 'Connected to execution node at %s. Current block number: %s',
                 execution_endpoint,
