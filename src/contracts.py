@@ -57,9 +57,4 @@ class KeeperContract:
         return events
 
 
-def get_keeper_contract() -> KeeperContract:
-    """:returns instance of `Keeper` contract."""
-    return KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
-
-
-keeper_contract = get_keeper_contract()
+keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)

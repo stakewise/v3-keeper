@@ -1,6 +1,7 @@
 import logging
 
 from eth_keys.datatypes import PublicKey
+from sw_utils.decorators import retry_ipfs_exception
 from web3 import Web3
 from web3.types import Wei
 
@@ -8,7 +9,6 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract
-from src.decorators import retry_ipfs_exception
 from src.typings import Oracle, OracleConfig, RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,12 @@ async def get_oracle_config() -> OracleConfig:
         oracles.append(oracle)
 
     exit_signature_recover_threshold = config['exit_signature_recover_threshold']
+    rewards_threshold = await keeper_contract.get_rewards_threshold()
 
     return OracleConfig(
-        oracles=oracles, exit_signature_recover_threshold=exit_signature_recover_threshold
+        oracles=oracles,
+        exit_signature_recover_threshold=exit_signature_recover_threshold,
+        rewards_threshold=rewards_threshold,
     )
 
 

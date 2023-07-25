@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 from sw_utils import InterruptHandler
 
@@ -12,7 +13,6 @@ from src.config.settings import (
     NETWORK_CONFIG,
     SENTRY_DSN,
 )
-from src.contracts import keeper_contract
 from src.execution import get_keeper_balance, get_oracle_config
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
@@ -39,25 +39,37 @@ async def main() -> None:
 
     logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
     await metrics_server()
+    logger.info('Started keeper service...')
 
     with InterruptHandler() as interrupt_handler:
         while not interrupt_handler.exit:
-            oracle_config = await get_oracle_config()
-            oracles = oracle_config.oracles
+            start_time = time.time()
+            try:
+                oracle_config = await get_oracle_config()
 
-            if not oracles:
-                logger.error('Empty oracles set')
-                await asyncio.sleep(60)
-                continue
-            rewards_threshold = await keeper_contract.get_rewards_threshold()
-            exit_signature_recover_threshold = oracle_config.exit_signature_recover_threshold
+                if not oracle_config.oracles:
+                    logger.error('Empty oracles set')
+                    await asyncio.sleep(60)
+                    continue
 
-            keeper_balance = await get_keeper_balance()
-            metrics.keeper_balance.set(keeper_balance)
+                await asyncio.gather(
+                    process_rewards(
+                        oracles=oracle_config.oracles, threshold=oracle_config.rewards_threshold
+                    ),
+                    process_exits(
+                        oracles=oracle_config.oracles,
+                        threshold=oracle_config.exit_signature_recover_threshold,
+                    ),
+                )
 
-            await process_rewards(oracles=oracles, threshold=rewards_threshold)
-            await process_exits(oracles=oracles, threshold=exit_signature_recover_threshold)
-            await asyncio.sleep(int(NETWORK_CONFIG.SECONDS_PER_BLOCK))
+                metrics.keeper_balance.set(await get_keeper_balance())
+
+            except Exception as e:
+                logger.exception(e)
+
+            block_processing_time = time.time() - start_time
+            sleep_time = max(int(NETWORK_CONFIG.SECONDS_PER_BLOCK) - int(block_processing_time), 0)
+            await asyncio.sleep(sleep_time)
 
 
 if __name__ == '__main__':

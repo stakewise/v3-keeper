@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from eth_typing import BlockNumber, ChecksumAddress, HexStr
+from eth_typing import ChecksumAddress, HexStr
 from eth_typing.bls import BLSSignature
 from web3.types import Timestamp
 
@@ -16,6 +16,7 @@ class Oracle:
 class OracleConfig:
     oracles: list[Oracle]
     exit_signature_recover_threshold: int
+    rewards_threshold: int
 
 
 @dataclass
@@ -43,11 +44,3 @@ class RewardVote:
     nonce: int
     signature: bytes
     body: RewardVoteBody
-
-
-@dataclass
-class ChainHead:
-    epoch: int
-    consensus_block: int
-    execution_block: BlockNumber
-    execution_ts: Timestamp

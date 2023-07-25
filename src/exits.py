@@ -12,7 +12,6 @@ from web3.types import HexStr
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
 from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
-from src.consensus import get_chain_finalized_head, get_consensus_fork
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
 from src.typings import Oracle, ValidatorExitShare
@@ -31,7 +30,9 @@ EXITING_STATUSES = [
 
 
 async def process_exits(oracles: list[Oracle], threshold: int) -> None:
-    chain_head = await get_chain_finalized_head()
+    chain_head = await consensus_client.get_chain_finalized_head(
+        slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
+    )
 
     metrics.epoch.set(chain_head.epoch)
     metrics.consensus_block.set(chain_head.consensus_block)
@@ -129,13 +130,13 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
 
 
 async def _get_fork_epochs() -> tuple[int, int]:
-    current_fork = await get_consensus_fork(state_id='head')
+    current_fork = await consensus_client.get_consensus_fork(state_id='head')
     prev_fork_slot: int = (
         ((current_fork.epoch - 1) * NETWORK_CONFIG.SLOTS_PER_EPOCH)
         + NETWORK_CONFIG.SLOTS_PER_EPOCH
         - 1
     )
-    previous_fork = await get_consensus_fork(state_id=str(prev_fork_slot))
+    previous_fork = await consensus_client.get_consensus_fork(state_id=str(prev_fork_slot))
     return current_fork.epoch, previous_fork.epoch
 
 
