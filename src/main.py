@@ -68,7 +68,7 @@ async def main() -> None:
                 logger.exception(e)
 
             block_processing_time = time.time() - start_time
-            sleep_time = max(int(NETWORK_CONFIG.SECONDS_PER_BLOCK) - int(block_processing_time), 0)
+            sleep_time = max(float(NETWORK_CONFIG.SECONDS_PER_BLOCK) - block_processing_time, 0)
             await asyncio.sleep(sleep_time)
 
 
