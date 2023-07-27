@@ -44,29 +44,29 @@ async def main() -> None:
     with InterruptHandler() as interrupt_handler:
         while not interrupt_handler.exit:
             start_time = time.time()
-            try:
-                oracle_config = await get_oracle_config()
+            oracle_config = await get_oracle_config()
 
-                if not oracle_config.oracles:
-                    logger.error('Empty oracles set')
-                    await asyncio.sleep(60)
-                    continue
+            if not oracle_config.oracles:
+                logger.error('Empty oracles set')
+                await asyncio.sleep(60)
+                continue
 
-                await asyncio.gather(
-                    process_rewards(
-                        oracles=oracle_config.oracles, threshold=oracle_config.rewards_threshold
-                    ),
-                    process_exits(
-                        oracles=oracle_config.oracles,
-                        threshold=oracle_config.exit_signature_recover_threshold,
-                    ),
-                )
+            results = await asyncio.gather(
+                process_rewards(
+                    oracles=oracle_config.oracles, threshold=oracle_config.rewards_threshold
+                ),
+                process_exits(
+                    oracles=oracle_config.oracles,
+                    threshold=oracle_config.exit_signature_recover_threshold,
+                ),
+                return_exceptions=True,
+            )
 
-                metrics.keeper_balance.set(await get_keeper_balance())
+            for result in results:
+                if isinstance(result, Exception):
+                    raise result
 
-            except Exception as e:
-                logger.exception(e)
-
+            metrics.keeper_balance.set(await get_keeper_balance())
             block_processing_time = time.time() - start_time
             sleep_time = max(float(NETWORK_CONFIG.SECONDS_PER_BLOCK) - block_processing_time, 0)
             await asyncio.sleep(sleep_time)
