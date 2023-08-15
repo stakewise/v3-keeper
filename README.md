@@ -25,7 +25,6 @@ Any execution client that supports [ETH Execution API specification](https://eth
 - [Erigon](https://launchpad.ethereum.org/en/erigon) (Ethereum)
 - [Geth](https://launchpad.ethereum.org/en/geth) (Ethereum)
 
-
 ## Usage
 
 ### Step 1. Generate hot wallet
@@ -47,6 +46,7 @@ Copy [.env.example](./.env.example) file to `.env` file and fill it with correct
 ### Step 3. Deploy keeper
 
 #### Option 1. Use Docker image
+
 Pull Docker image from [here](https://europe-west4-docker.pkg.dev/stakewiselabs/private/v3-keeper) and start the container with the following command:
 
 ```sh
@@ -65,8 +65,8 @@ Build requirements:
 - [Python 3.10+](https://www.python.org/downloads/)
 - [Poetry](https://python-poetry.org/docs/)
 
-
 Install dependencies and start keeper processes:
+
 ```sh
 poetry install --no-dev
 PYTHONPATH="." python src/main.py
@@ -76,7 +76,7 @@ PYTHONPATH="." python src/main.py
 
 Keeper supports monitoring using Prometheus by providing a `/metrics` endpoint that Prometheus can scrape to gather various metrics.
 
-### Prerequisites:
+### Prerequisites
 
 1. Keeper application running and accessible.
 1. Prometheus server installed and running.
@@ -99,7 +99,7 @@ export METRICS_HOST=0.0.0.0
 export METRICS_PORT=9100
 ```
 
-Now, Keeper's metrics will be available at http://[METRICS_HOST]:[METRICS_PORT]/metrics.
+Now, Keeper's metrics will be available at <http://[METRICS_HOST]:[METRICS_PORT]/metrics>.
 
 Configure Prometheus:
 
@@ -119,7 +119,8 @@ Replace `<METRICS_HOST>` and `<METRICS_PORT>` with the values you've set in Keep
 
 This configuration tells Prometheus to scrape metrics from Keeper every 30 seconds.
 
-# Contacts
-- Dmitri Tsumak - dmitri@stakewise.io
-- Alexander Sysoev - alexander@stakewise.io
-- Evgeny Gusarov - evgeny@stakewise.io
+## Contacts
+
+- Dmitri Tsumak - <dmitri@stakewise.io>
+- Alexander Sysoev - <alexander@stakewise.io>
+- Evgeny Gusarov - <evgeny@stakewise.io>
