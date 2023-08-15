@@ -99,7 +99,7 @@ export METRICS_HOST=0.0.0.0
 export METRICS_PORT=9100
 ```
 
-Now, Keeper's metrics will be available at http://[METRICS_HOST]:[METRICS_PORT]/metrics.
+Now, Keeper's metrics will be available at <http://[METRICS_HOST]:[METRICS_PORT]/metrics>.
 
 Configure Prometheus:
 
