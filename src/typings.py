@@ -8,7 +8,7 @@ from web3.types import Timestamp
 @dataclass
 class Oracle:
     index: int
-    endpoint: str
+    endpoints: list[str]
     address: ChecksumAddress
 
 
