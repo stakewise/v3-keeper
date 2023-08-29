@@ -29,9 +29,15 @@ async def get_oracle_config() -> OracleConfig:
     oracles = []
     for index, oracle_config in enumerate(config['oracles']):
         public_key = PublicKey(Web3.to_bytes(hexstr=oracle_config['public_key']))
+
+        if endpoint := oracle_config.get('endpoint'):
+            endpoints = [endpoint]
+        else:
+            endpoints = oracle_config['endpoints']
+
         oracle = Oracle(
             address=public_key.to_checksum_address(),
-            endpoint=oracle_config['endpoint'],
+            endpoints=endpoints,
             index=index,
         )
         oracles.append(oracle)

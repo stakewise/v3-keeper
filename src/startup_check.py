@@ -126,7 +126,11 @@ async def startup_checks():
 
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(
-            *[_aiohttp_fetch(session=session, url=oracle.endpoint) for oracle in oracles],
+            *[
+                _aiohttp_fetch(session=session, url=endpoint)
+                for oracle in oracles
+                for endpoint in oracle.endpoints
+            ],
             return_exceptions=True
         )
 
