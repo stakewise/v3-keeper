@@ -21,7 +21,6 @@ class NetworkConfig:
     KEEPER_GENESIS_BLOCK: BlockNumber
     SECONDS_PER_BLOCK: Decimal
     SLOTS_PER_EPOCH: int
-    SECONDS_PER_SLOT: int
     IS_POA: bool
     KEEPER_MIN_BALANCE: Wei
 
@@ -33,7 +32,6 @@ NETWORKS = {
         KEEPER_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
-        SECONDS_PER_SLOT=12,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
@@ -45,7 +43,6 @@ NETWORKS = {
         KEEPER_GENESIS_BLOCK=BlockNumber(9583358),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
-        SECONDS_PER_SLOT=12,
         IS_POA=True,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
@@ -55,7 +52,6 @@ NETWORKS = {
         KEEPER_GENESIS_BLOCK=BlockNumber(0),
         SECONDS_PER_BLOCK=Decimal('6.8'),
         SLOTS_PER_EPOCH=16,
-        SECONDS_PER_SLOT=5,
         IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
