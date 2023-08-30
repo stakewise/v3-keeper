@@ -4,6 +4,7 @@ from collections import defaultdict
 from urllib.parse import urljoin
 
 import aiohttp
+from aiohttp import ClientSession
 from eth_typing.bls import BLSSignature
 from sw_utils import ValidatorStatus
 from web3 import Web3
@@ -81,12 +82,11 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
 
 
 async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
-    async with aiohttp.ClientSession() as session:
+    async with ClientSession() as session:
         results = await asyncio.gather(
-            *[_fetch_exit_shares(session=session, oracle=oracle) for oracle in oracles],
-            return_exceptions=True
+            *[_fetch_exit_shares_from_oracle(session=session, oracle=oracle) for oracle in oracles],
+            return_exceptions=True,
         )
-
     validator_exits = defaultdict(list)
     for result in results:
         if isinstance(result, Exception):
@@ -100,8 +100,29 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
     return validator_exits
 
 
-async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
-    url = urljoin(oracle.endpoint, EXIT_VOTE_URL_PATH)
+async def _fetch_exit_shares_from_oracle(
+    session: ClientSession, oracle: Oracle
+) -> list[ValidatorExitShare]:
+    results: list[list[ValidatorExitShare] | Exception] = await asyncio.gather(
+        *(
+            _fetch_exit_shares_from_endpoint(session, oracle, endpoint)
+            for endpoint in oracle.endpoints
+        ),
+        return_exceptions=True,
+    )
+    for endpoint, result in zip(oracle.endpoints, results):
+        if isinstance(result, Exception):
+            logger.warning('%s from %s', repr(result), endpoint)
+            continue
+        if result:
+            return result
+    return []
+
+
+async def _fetch_exit_shares_from_endpoint(
+    session: ClientSession, oracle: Oracle, endpoint: str
+) -> list[ValidatorExitShare]:
+    url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
     exits = []
     if not data:
@@ -111,7 +132,7 @@ async def _fetch_exit_shares(session, oracle) -> list[ValidatorExitShare]:
             if key not in exit_data.keys():
                 logger.error(
                     'Invalid response from oracle',
-                    extra={'oracle': oracle.account, 'response': data},
+                    extra={'oracle': oracle.address, 'response': data},
                 )
                 return []
 
