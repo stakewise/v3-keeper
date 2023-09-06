@@ -19,7 +19,7 @@ from src.typings import Oracle, ValidatorExitShare
 
 logger = logging.getLogger(__name__)
 
-EXIT_VOTE_URL_PATH = '/exits/'
+EXIT_VOTE_URL_PATH = '/exits'
 
 EXITING_STATUSES = [
     ValidatorStatus.ACTIVE_EXITING,
