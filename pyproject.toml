@@ -27,6 +27,7 @@ flake8-pyproject = "==1.2.2"
 faker = "==17.0.0"
 flake8-datetime-utcnow-plugin = "==0.1.2"
 flake8-print = "==5.0.0"
+coverage = "==7.3.1"
 
 [tool.bandit]
 exclude_dirs = ["*/tests/*", "src/config/networks.py"]
@@ -69,3 +70,6 @@ exclude = '''
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.report]
+fail_under = 84
