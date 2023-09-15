@@ -87,6 +87,14 @@ async def startup_checks():
                 )
                 return False
             block_number = await execution_client.eth.block_number
+            if block_number <= 0:
+                # There was a case when `block_number` equals to 0 although `syncing` is False.
+                logger.warning(
+                    'Execution node %s. Current block number is %s',
+                    execution_endpoint,
+                    block_number,
+                )
+                return False
             logger.info(
                 'Connected to execution node at %s. Current block number: %s',
                 execution_endpoint,
