@@ -138,6 +138,8 @@ jobs:
         with:
           images: |
             europe-west4-docker.pkg.dev/stakewiselabs/public/v3-keeper
+          flavor: |
+            latest=false
           tags: |
             type=ref,event=branch
             type=ref,event=tag
