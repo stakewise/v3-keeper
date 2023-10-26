@@ -8,6 +8,7 @@ from web3.types import BlockNumber, Wei
 
 MAINNET = 'mainnet'
 GOERLI = 'goerli'
+HOLESKY = 'holesky'
 GNOSIS = 'gnosis'
 
 ETH_NETWORKS = [MAINNET, GOERLI]
@@ -44,6 +45,17 @@ NETWORKS = {
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         IS_POA=True,
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
+    ),
+    HOLESKY: NetworkConfig(
+        SYMBOL='HolETH',
+        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xc3e8c8BA310b62540FBb5eB81c9028444D35e568'
+        ),
+        KEEPER_GENESIS_BLOCK=BlockNumber(167109),
+        SECONDS_PER_BLOCK=Decimal(12),
+        SLOTS_PER_EPOCH=32,
+        IS_POA=False,
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
     GNOSIS: NetworkConfig(

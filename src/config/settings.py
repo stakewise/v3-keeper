@@ -1,6 +1,6 @@
 from decouple import Choices, Csv, config
 
-from src.config.networks import GOERLI, NETWORKS, NetworkConfig
+from src.config.networks import GOERLI, HOLESKY, NETWORKS, NetworkConfig
 
 # connections
 EXECUTION_ENDPOINTS = config('EXECUTION_ENDPOINTS', cast=Csv())
@@ -13,7 +13,7 @@ PRIVATE_KEY = config('PRIVATE_KEY')
 LOG_LEVEL = config('LOG_LEVEL', default='INFO')
 
 # network
-NETWORK = config('NETWORK', cast=Choices([GOERLI]))
+NETWORK = config('NETWORK', cast=Choices([GOERLI, HOLESKY]))
 NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 
 # remote IPFS
