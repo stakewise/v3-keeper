@@ -50,9 +50,9 @@ NETWORKS = {
     HOLESKY: NetworkConfig(
         SYMBOL='HolETH',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xc3e8c8BA310b62540FBb5eB81c9028444D35e568'
+            '0xB580799Bf7d62721D1a523f0FDF2f5Ed7BA4e259'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(167109),
+        KEEPER_GENESIS_BLOCK=BlockNumber(215379),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         IS_POA=False,
