@@ -90,7 +90,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
     validator_exits = defaultdict(list)
     for result in results:
         if isinstance(result, Exception):
-            logger.error(result)
+            logger.warning(result)
             continue
 
         if result:
@@ -130,11 +130,11 @@ async def _fetch_exit_shares_from_endpoint(
     for exit_data in data:
         for key in ['index', 'exit_signature_share']:
             if key not in exit_data.keys():
-                logger.error(
+                logger.warning(
                     'Invalid response from oracle',
                     extra={'oracle': oracle.address, 'response': data},
                 )
-                return []
+                raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
         validator_exit = ValidatorExitShare(
             validator_index=exit_data['index'],
