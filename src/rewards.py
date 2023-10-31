@@ -76,7 +76,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     votes: list[RewardVote] = []
     for result in results:
         if isinstance(result, Exception):
-            logger.error(result)
+            logger.warning(result)
             continue
 
         votes.append(result)
@@ -132,7 +132,7 @@ async def _fetch_vote_from_endpoint(
         'avg_reward_per_second',
     ]:
         if key not in data.keys():
-            logger.error(
+            logger.warning(
                 'Invalid response from oracle', extra={'endpoint': endpoint, 'response': data}
             )
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
