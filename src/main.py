@@ -80,7 +80,11 @@ if __name__ == '__main__':
     if SENTRY_DSN:
         import sentry_sdk
 
-        sentry_sdk.init(SENTRY_DSN, traces_sample_rate=0.1)
+        sentry_sdk.init(
+            SENTRY_DSN,
+            traces_sample_rate=0.1,
+            environment=NETWORK,
+        )
         sentry_sdk.set_tag('network', NETWORK)
 
     asyncio.run(main())
