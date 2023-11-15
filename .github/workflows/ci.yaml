@@ -50,7 +50,7 @@ jobs:
     name: Testing
     runs-on: ubuntu-latest
     env:
-      NETWORK: 'goerli'
+      NETWORK: 'mainnet'
       EXECUTION_ENDPOINTS: 'http://example.com'
       CONSENSUS_ENDPOINTS: 'http://example.com'
       PRIVATE_KEY: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
