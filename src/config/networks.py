@@ -11,7 +11,7 @@ GOERLI = 'goerli'
 HOLESKY = 'holesky'
 GNOSIS = 'gnosis'
 
-ETH_NETWORKS = [MAINNET, GOERLI]
+ETH_NETWORKS = [MAINNET, GOERLI, HOLESKY]
 GNO_NETWORKS = [GNOSIS]
 
 
@@ -29,8 +29,10 @@ class NetworkConfig:
 NETWORKS = {
     MAINNET: NetworkConfig(
         SYMBOL='ETH',
-        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        KEEPER_GENESIS_BLOCK=BlockNumber(0),
+        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x6B5815467da09DaA7DC83Db21c9239d98Bb487b5'
+        ),
+        KEEPER_GENESIS_BLOCK=BlockNumber(18470089),
         SECONDS_PER_BLOCK=Decimal(12),
         SLOTS_PER_EPOCH=32,
         IS_POA=False,
