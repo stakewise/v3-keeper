@@ -56,10 +56,10 @@ async def main() -> None:
                     process_rewards(
                         oracles=oracle_config.oracles, threshold=oracle_config.rewards_threshold
                     ),
-                    process_exits(
-                        oracles=oracle_config.oracles,
-                        threshold=oracle_config.exit_signature_recover_threshold,
-                    ),
+                    # process_exits(
+                    #     oracles=oracle_config.oracles,
+                    #     threshold=oracle_config.exit_signature_recover_threshold,
+                    # ),
                     return_exceptions=True,
                 )
 
