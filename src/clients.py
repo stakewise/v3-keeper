@@ -11,6 +11,8 @@ from src.config.settings import (
     CONSENSUS_ENDPOINTS,
     DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINTS,
+    IPFS_CLIENT_RETRY_TIMEOUT,
+    IPFS_CLIENT_TIMEOUT,
     IPFS_FETCH_ENDPOINTS,
     NETWORK_CONFIG,
 )
@@ -27,4 +29,6 @@ def build_execution_client() -> AsyncWeb3:
 
 execution_client = build_execution_client()
 consensus_client = get_consensus_client(CONSENSUS_ENDPOINTS, retry_timeout=DEFAULT_RETRY_TIME)
-ipfs_fetch_client = IpfsFetchClient(IPFS_FETCH_ENDPOINTS)
+ipfs_fetch_client = IpfsFetchClient(
+    IPFS_FETCH_ENDPOINTS, timeout=IPFS_CLIENT_TIMEOUT, retry_timeout=IPFS_CLIENT_RETRY_TIMEOUT
+)

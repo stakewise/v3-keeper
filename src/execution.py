@@ -1,7 +1,6 @@
 import logging
 
 from eth_keys.datatypes import PublicKey
-from sw_utils.decorators import retry_ipfs_exception
 from web3 import Web3
 from web3.types import Wei
 
@@ -24,7 +23,7 @@ async def get_oracle_config() -> OracleConfig:
 
     # fetch IPFS record
     ipfs_hash = events[-1]['args']['configIpfsHash']
-    config = await _fetch_ipfs_config(ipfs_hash)
+    config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
     oracles = []
     for index, oracle_config in enumerate(config['oracles']):
@@ -69,11 +68,6 @@ async def check_keeper_balance() -> None:
             Web3.from_wei(keeper_min_balance, 'ether'),
             symbol,
         )
-
-
-@retry_ipfs_exception(delay=DEFAULT_RETRY_TIME)
-async def _fetch_ipfs_config(ipfs_hash) -> dict:
-    return await ipfs_fetch_client.fetch_json(ipfs_hash)
 
 
 async def submit_vote(
