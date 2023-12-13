@@ -24,6 +24,8 @@ IPFS_FETCH_ENDPOINTS = config(
     'http://cloudflare-ipfs.com,'
     'https://gateway.pinata.cloud,https://ipfs.io',
 )
+IPFS_CLIENT_TIMEOUT: int = config('IPFS_CLIENT_TIMEOUT', default=60, cast=int)
+IPFS_CLIENT_RETRY_TIMEOUT: int = config('IPFS_CLIENT_RETRY_TIMEOUT', default=120, cast=int)
 
 DEFAULT_RETRY_TIME = 30
 VALIDATORS_FETCH_CHUNK_SIZE = config('VALIDATORS_FETCH_CHUNK_SIZE', default=100, cast=int)
