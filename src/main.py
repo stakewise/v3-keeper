@@ -65,7 +65,7 @@ async def main() -> None:
 
                 for result in results:
                     if isinstance(result, Exception):
-                        raise result
+                        logger.exception('', exc_info=result)
 
                 metrics.keeper_balance.set(await get_keeper_balance())
             except Exception as exc:
