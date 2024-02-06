@@ -13,7 +13,7 @@ from src.config.settings import (
     EXECUTION_ENDPOINTS,
     IPFS_FETCH_ENDPOINTS,
 )
-from src.execution import check_keeper_balance, get_oracle_config
+from src.execution import check_keeper_balance, get_protocol_config
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +129,8 @@ async def startup_checks():
     await _check_ipfs_fetch_nodes()
 
     logger.info('Checking connection to oracles set...')
-    oracle_config = await get_oracle_config()
-    oracles = oracle_config.oracles
+    protocol_config = await get_protocol_config()
+    oracles = protocol_config.oracles
 
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(

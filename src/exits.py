@@ -7,6 +7,7 @@ import aiohttp
 from aiohttp import ClientSession
 from eth_typing.bls import BLSSignature
 from sw_utils import ValidatorStatus
+from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import HexStr
 
@@ -15,7 +16,7 @@ from src.common import aiohttp_fetch
 from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
-from src.typings import Oracle, ValidatorExitShare
+from src.typings import ValidatorExitShare
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ EXITING_STATUSES = [
 ]
 
 
-async def process_exits(oracles: list[Oracle], threshold: int) -> None:
+async def process_exits(protocol_config: ProtocolConfig) -> None:
     chain_head = await consensus_client.get_chain_finalized_head(
         slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
     )
@@ -40,7 +41,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     metrics.execution_block.set(chain_head.execution_block)
     metrics.execution_ts.set(chain_head.execution_ts)
 
-    validator_exits = await _fetch_validator_exits(oracles)
+    validator_exits = await _fetch_validator_exits(protocol_config.oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
     exited_statuses = [x.value for x in EXITING_STATUSES]
     for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
@@ -59,7 +60,7 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
 
-        if len(shares) < threshold:
+        if len(shares) < protocol_config.exit_signature_recover_threshold:
             logger.warning(
                 'Not enough exit signature shares for validator %s, skipping...', validator_index
             )
@@ -84,7 +85,12 @@ async def process_exits(oracles: list[Oracle], threshold: int) -> None:
 async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
     async with ClientSession() as session:
         results = await asyncio.gather(
-            *[_fetch_exit_shares_from_oracle(session=session, oracle=oracle) for oracle in oracles],
+            *[
+                _fetch_exit_shares_from_oracle(
+                    session=session, oracle=oracle, oracle_index=oracle_index
+                )
+                for oracle_index, oracle in enumerate(oracles)
+            ],
             return_exceptions=True,
         )
     validator_exits = defaultdict(list)
@@ -101,11 +107,11 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 
 
 async def _fetch_exit_shares_from_oracle(
-    session: ClientSession, oracle: Oracle
+    session: ClientSession, oracle: Oracle, oracle_index: int
 ) -> list[ValidatorExitShare]:
     results: list[list[ValidatorExitShare] | Exception] = await asyncio.gather(
         *(
-            _fetch_exit_shares_from_endpoint(session, oracle, endpoint)
+            _fetch_exit_shares_from_endpoint(session, oracle, endpoint, oracle_index)
             for endpoint in oracle.endpoints
         ),
         return_exceptions=True,
@@ -120,7 +126,7 @@ async def _fetch_exit_shares_from_oracle(
 
 
 async def _fetch_exit_shares_from_endpoint(
-    session: ClientSession, oracle: Oracle, endpoint: str
+    session: ClientSession, oracle: Oracle, endpoint: str, oracle_index: int
 ) -> list[ValidatorExitShare]:
     url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
@@ -141,7 +147,7 @@ async def _fetch_exit_shares_from_endpoint(
             exit_signature_share=BLSSignature(
                 Web3.to_bytes(hexstr=exit_data['exit_signature_share'])
             ),
-            share_index=oracle.index,
+            share_index=oracle_index,
         )
         exits.append(validator_exit)
 

@@ -1,6 +1,6 @@
 import logging
 
-from eth_keys.datatypes import PublicKey
+from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
 
@@ -8,7 +8,7 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
 from src.contracts import keeper_contract
-from src.typings import Oracle, OracleConfig, RewardVoteBody
+from src.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ SECONDS_PER_MONTH: int = 2628000
 APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
 
 
-async def get_oracle_config() -> OracleConfig:
+async def get_protocol_config() -> ProtocolConfig:
     events = await keeper_contract.get_config_update_events()
     if not events:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
@@ -25,28 +25,10 @@ async def get_oracle_config() -> OracleConfig:
     ipfs_hash = events[-1]['args']['configIpfsHash']
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
-    oracles = []
-    for index, oracle_config in enumerate(config['oracles']):
-        public_key = PublicKey(Web3.to_bytes(hexstr=oracle_config['public_key']))
-
-        if endpoint := oracle_config.get('endpoint'):
-            endpoints = [endpoint]
-        else:
-            endpoints = oracle_config['endpoints']
-
-        oracle = Oracle(
-            address=public_key.to_checksum_address(),
-            endpoints=endpoints,
-            index=index,
-        )
-        oracles.append(oracle)
-
-    exit_signature_recover_threshold = config['exit_signature_recover_threshold']
     rewards_threshold = await keeper_contract.get_rewards_threshold()
 
-    return OracleConfig(
-        oracles=oracles,
-        exit_signature_recover_threshold=exit_signature_recover_threshold,
+    return build_protocol_config(
+        config_data=config,
         rewards_threshold=rewards_threshold,
     )
 

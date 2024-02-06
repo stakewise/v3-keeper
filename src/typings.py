@@ -6,20 +6,6 @@ from web3.types import Timestamp
 
 
 @dataclass
-class Oracle:
-    index: int
-    endpoints: list[str]
-    address: ChecksumAddress
-
-
-@dataclass
-class OracleConfig:
-    oracles: list[Oracle]
-    exit_signature_recover_threshold: int
-    rewards_threshold: int
-
-
-@dataclass
 class ValidatorExitShare:
     validator_index: int
     exit_signature_share: BLSSignature

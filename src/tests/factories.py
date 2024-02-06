@@ -1,17 +1,17 @@
 import random
 
 from eth_typing import HexStr
-from sw_utils.tests import faker
+from sw_utils.tests.factories import faker
+from sw_utils.typings import Oracle
 from web3.types import Timestamp
 
-from src.typings import Oracle, RewardVote, RewardVoteBody
+from src.typings import RewardVote, RewardVoteBody
 
 
 def create_oracle(num_endpoints: int = 1) -> Oracle:
     return Oracle(
-        address=faker.eth_address(),
+        public_key=faker.eth_validator_key(),
         endpoints=[f'https://example{i}.com' for i in range(num_endpoints)],
-        index=1,
     )
 
 

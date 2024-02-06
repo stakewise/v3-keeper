@@ -5,6 +5,7 @@ from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp import ClientSession
+from sw_utils import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import Timestamp
 
@@ -12,18 +13,18 @@ from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
 from src.execution import submit_vote
 from src.metrics import metrics
-from src.typings import Oracle, RewardVote, RewardVoteBody
+from src.typings import RewardVote, RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
 REWARD_VOTE_URL_PATH = '/'
 
 
-async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
+async def process_rewards(protocol_config: ProtocolConfig) -> None:
     if not await keeper_contract.can_update_rewards():
         return
 
-    votes = await _fetch_reward_votes(oracles)
+    votes = await _fetch_reward_votes(protocol_config.oracles)
     if not votes:
         logger.warning('No active votes')
         return
@@ -38,7 +39,7 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
 
     winner, winner_vote_count = counter.most_common(1)[0]
 
-    if not await _can_submit(winner_vote_count, threshold):
+    if not await _can_submit(winner_vote_count, protocol_config.rewards_threshold):
         logger.warning('Not enough oracle votes, skipping update...')
         return
 
@@ -53,7 +54,7 @@ async def process_rewards(oracles: list[Oracle], threshold: int) -> None:
     signatures_count = 0
     signatures = b''
     for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
-        if signatures_count >= threshold:
+        if signatures_count >= protocol_config.rewards_threshold:
             break
 
         if vote.body == winner:
@@ -101,7 +102,7 @@ async def _fetch_vote_from_oracle(session: ClientSession, oracle: Oracle) -> Rew
         votes.append(result)
 
     if not votes:
-        raise RuntimeError(f'All endpoints are unavailable for oracle {oracle.index}')
+        raise RuntimeError(f'All endpoints are unavailable for oracle {oracle.public_key}')
 
     max_nonce = max(v.nonce for v in votes)
     votes = [v for v in votes if v.nonce == max_nonce]
