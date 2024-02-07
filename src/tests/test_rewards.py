@@ -41,7 +41,7 @@ async def test_basic():
     ipfs_hash, wrong_ipfs_hash = _get_random_ipfs_hash(), _get_random_ipfs_hash
     ts = Timestamp(random.randint(1600000000, 1700000000))
     oracles = [
-        Oracle(public_key=faker.eth_validator_key(), endpoints=[f'https://example{i}.com'])
+        Oracle(public_key=faker.ecies_public_key(), endpoints=[f'https://example{i}.com'])
         for i in range(5)
     ]
     votes = []
@@ -88,7 +88,7 @@ async def test_basic():
 class TestFetchRewardVotes:
     async def test_fetch_reward_votes(self):
         oracles = [
-            Oracle(public_key=faker.eth_validator_key(), endpoints=[f'https://example{i}.com'])
+            Oracle(public_key=faker.ecies_public_key(), endpoints=[f'https://example{i}.com'])
             for i in range(5)
         ]
         vote_1 = create_vote(oracle=oracles[1])

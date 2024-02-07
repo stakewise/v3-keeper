@@ -10,7 +10,7 @@ from src.typings import RewardVote, RewardVoteBody
 
 def create_oracle(num_endpoints: int = 1) -> Oracle:
     return Oracle(
-        public_key=faker.eth_validator_key(),
+        public_key=faker.ecies_public_key(),
         endpoints=[f'https://example{i}.com' for i in range(num_endpoints)],
     )
 
