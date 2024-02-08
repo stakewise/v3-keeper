@@ -49,7 +49,7 @@ async def main() -> None:
 
                 if not oracle_config.oracles:
                     logger.error('Empty oracles set')
-                    await asyncio.sleep(60)
+                    await interrupt_handler.sleep(60)
                     continue
 
                 results = await asyncio.gather(
@@ -73,7 +73,7 @@ async def main() -> None:
 
             block_processing_time = time.time() - start_time
             sleep_time = max(float(NETWORK_CONFIG.SECONDS_PER_BLOCK) - block_processing_time, 0)
-            await asyncio.sleep(sleep_time)
+            await interrupt_handler.sleep(sleep_time)
 
 
 if __name__ == '__main__':
