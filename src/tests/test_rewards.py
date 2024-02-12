@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 import pytest
 from eth_typing import HexStr
-from sw_utils.tests import faker
+from sw_utils.tests.factories import faker, get_mocked_protocol_config
+from sw_utils.typings import Oracle
 from web3 import Web3
 from web3.types import Timestamp
 
@@ -16,16 +17,12 @@ from src.rewards import (
     process_rewards,
 )
 from src.tests.factories import create_oracle, create_vote
-from src.typings import Oracle, RewardVote, RewardVoteBody
+from src.typings import RewardVote, RewardVoteBody
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_early():
-    oracles = [
-        Oracle(address=faker.eth_address(), endpoints=[f'https://example{i}.com'], index=i)
-        for i in range(5)
-    ]
     with patch(
         'src.rewards.aiohttp_fetch',
         return_value=[],
@@ -34,7 +31,7 @@ async def test_early():
         'can_update_rewards',
         return_value=False,
     ), patch('src.rewards.submit_vote') as submit_mock:
-        await process_rewards(oracles, 3)
+        await process_rewards(get_mocked_protocol_config(oracles_count=5))
         submit_mock.assert_not_called()
 
 
@@ -44,11 +41,11 @@ async def test_basic():
     ipfs_hash, wrong_ipfs_hash = _get_random_ipfs_hash(), _get_random_ipfs_hash
     ts = Timestamp(random.randint(1600000000, 1700000000))
     oracles = [
-        Oracle(address=faker.eth_address(), endpoints=[f'https://example{i}.com'], index=i)
+        Oracle(public_key=faker.ecies_public_key(), endpoints=[f'https://example{i}.com'])
         for i in range(5)
     ]
     votes = []
-    for oracle in oracles:
+    for index, oracle in enumerate(oracles):
         votes.append(
             RewardVote(
                 oracle_address=oracle.address,
@@ -56,8 +53,8 @@ async def test_basic():
                 signature=random.randbytes(16),
                 body=RewardVoteBody(
                     update_timestamp=Timestamp(ts),
-                    root=HexStr(root) if not oracle.index % 2 else HexStr(wrong_root),
-                    ipfs_hash=ipfs_hash if not oracle.index % 2 else wrong_ipfs_hash,
+                    root=HexStr(root) if not index % 2 else HexStr(wrong_root),
+                    ipfs_hash=ipfs_hash if not index % 2 else wrong_ipfs_hash,
                     avg_reward_per_second=1000,
                 ),
             )
@@ -78,7 +75,7 @@ async def test_basic():
         'src.rewards.submit_vote',
         return_value=None,
     ) as submit_mock:
-        await process_rewards(oracles, 3)
+        await process_rewards(get_mocked_protocol_config(oracles=oracles, rewards_threshold=3))
 
         submit_mock.assert_called_once_with(
             RewardVoteBody(
@@ -91,7 +88,7 @@ async def test_basic():
 class TestFetchRewardVotes:
     async def test_fetch_reward_votes(self):
         oracles = [
-            Oracle(address=faker.eth_address(), endpoints=[f'https://example{i}.com'], index=i)
+            Oracle(public_key=faker.ecies_public_key(), endpoints=[f'https://example{i}.com'])
             for i in range(5)
         ]
         vote_1 = create_vote(oracle=oracles[1])

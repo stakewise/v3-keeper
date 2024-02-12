@@ -13,7 +13,7 @@ from src.config.settings import (
     NETWORK_CONFIG,
     SENTRY_DSN,
 )
-from src.execution import get_keeper_balance, get_oracle_config
+from src.execution import get_keeper_balance, get_protocol_config
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
 from src.rewards import process_rewards
@@ -45,20 +45,19 @@ async def main() -> None:
         while not interrupt_handler.exit:
             start_time = time.time()
             try:
-                oracle_config = await get_oracle_config()
+                protocol_config = await get_protocol_config()
 
-                if not oracle_config.oracles:
+                if not protocol_config.oracles:
                     logger.error('Empty oracles set')
                     await interrupt_handler.sleep(60)
                     continue
 
                 results = await asyncio.gather(
                     process_rewards(
-                        oracles=oracle_config.oracles, threshold=oracle_config.rewards_threshold
+                        protocol_config=protocol_config,
                     ),
                     process_exits(
-                        oracles=oracle_config.oracles,
-                        threshold=oracle_config.exit_signature_recover_threshold,
+                        protocol_config=protocol_config,
                     ),
                     return_exceptions=True,
                 )
