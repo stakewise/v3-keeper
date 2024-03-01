@@ -16,7 +16,7 @@ LOG_LEVEL = config('LOG_LEVEL', default='INFO')
 NETWORK = config('NETWORK', cast=Choices([MAINNET, HOLESKY]))
 NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 
-# remote IPFS
+# IPFS fetch
 IPFS_FETCH_ENDPOINTS = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
@@ -26,6 +26,29 @@ IPFS_FETCH_ENDPOINTS = config(
 )
 IPFS_CLIENT_TIMEOUT: int = config('IPFS_CLIENT_TIMEOUT', default=60, cast=int)
 IPFS_CLIENT_RETRY_TIMEOUT: int = config('IPFS_CLIENT_RETRY_TIMEOUT', default=120, cast=int)
+
+# IPFS upload
+# Local
+IPFS_LOCAL_CLIENT_ENDPOINT: str = config('IPFS_LOCAL_CLIENT_ENDPOINT', default='')
+
+# infura
+IPFS_INFURA_CLIENT_ENDPOINT: str = config(
+    'IPFS_LOCAL_CLIENT_ENDPOINT', default='/dns/ipfs.infura.io/tcp/5001/https'
+)
+IPFS_INFURA_CLIENT_USERNAME: str = config('IPFS_INFURA_CLIENT_USERNAME', default='')
+IPFS_INFURA_CLIENT_PASSWORD: str = config('IPFS_INFURA_CLIENT_PASSWORD', default='')
+
+# pinata
+IPFS_PINATA_ENDPOINT: str = 'https://api.pinata.cloud/pinning/pinJSONToIPFS'
+IPFS_PINATA_API_KEY: str = config('IPFS_PINATA_API_KEY', default='')
+IPFS_PINATA_SECRET_KEY: str = config('IPFS_PINATA_SECRET_KEY', default='')
+
+# Filebase
+IPFS_FILEBASE_API_TOKEN: str = config('IPFS_FILEBASE_API_TOKEN', default='')
+
+# Quicknode
+IPFS_QUICKNODE_API_TOKEN: str = config('IPFS_QUICKNODE_API_TOKEN', default='')
+
 
 DEFAULT_RETRY_TIME = 30
 VALIDATORS_FETCH_CHUNK_SIZE = config('VALIDATORS_FETCH_CHUNK_SIZE', default=100, cast=int)

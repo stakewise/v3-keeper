@@ -72,8 +72,9 @@ async def test_basic():
         'src.rewards._fetch_reward_votes',
         return_value=votes,
     ), patch(
+        'src.rewards.distribute_json_hash', return_value=None
+    ), patch(
         'src.rewards.submit_vote',
-        return_value=None,
     ) as submit_mock:
         await process_rewards(get_mocked_protocol_config(oracles=oracles, rewards_threshold=3))
 

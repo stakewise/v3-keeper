@@ -9,6 +9,7 @@ from sw_utils import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import Timestamp
 
+from src.clients import ipfs_fetch_client, ipfs_upload_client
 from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
 from src.execution import submit_vote
@@ -60,6 +61,8 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
         if vote.body == winner:
             signatures += vote.signature
             signatures_count += 1
+
+    await distribute_json_hash(winner.ipfs_hash)
 
     await submit_vote(
         winner,
@@ -155,3 +158,16 @@ async def _fetch_vote_from_endpoint(
         ),
     )
     return vote
+
+
+async def distribute_json_hash(origin_ipfs_hash: str) -> None:
+    if not origin_ipfs_hash:
+        return
+    if not origin_ipfs_hash.startswith('bafkr'):
+        raise ValueError('Only v1 version ipfs hashes can be distributed')
+    ipfs_data = await ipfs_fetch_client.fetch_json(origin_ipfs_hash)
+    ipfs_hash = await ipfs_upload_client.upload_json(ipfs_data)
+    if ipfs_hash != origin_ipfs_hash:
+        raise ValueError(
+            f'Different IPFS hashes: origin={origin_ipfs_hash}, distributed={ipfs_hash}'
+        )

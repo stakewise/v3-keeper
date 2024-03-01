@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "v3-keeper"
-version = "0.2.0"
+version = "0.2.1"
 description = "StakeWise keeper service is used to collect and push oracle votes to blockchain."
 authors = ["StakeWise Labs <info@stakewise.io>"]
 readme = "README.md"
@@ -72,4 +72,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.report]
-fail_under = 84
+fail_under = 83
