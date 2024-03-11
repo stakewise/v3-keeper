@@ -11,6 +11,7 @@ PRIVATE_KEY = config('PRIVATE_KEY')
 
 # common
 LOG_LEVEL = config('LOG_LEVEL', default='INFO')
+WEB3_LOG_LEVEL = config('WEB3_LOG_LEVEL', default='INFO')
 
 # network
 NETWORK = config('NETWORK', cast=Choices([MAINNET, HOLESKY]))
