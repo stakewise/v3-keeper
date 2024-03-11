@@ -60,6 +60,7 @@ USER nobody
 WORKDIR /app
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY --from=builder-base /usr/lib/ /usr/lib/
+COPY --from=builder-base /lib/ /lib/
 
 # Copy source code
 COPY . ./
