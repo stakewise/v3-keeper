@@ -57,5 +57,12 @@ async def submit_vote(
     signatures: bytes,
 ) -> None:
     tx = await keeper_contract.update_rewards(vote, signatures)
-    await execution_client.eth.wait_for_transaction_receipt(tx, timeout=DEFAULT_RETRY_TIME)
-    logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
+    tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
+        tx, timeout=DEFAULT_RETRY_TIME
+    )
+
+    tx_hash = Web3.to_hex(tx)
+    if tx_receipt['status']:
+        logger.info('Rewards has been successfully updated. Tx hash: %s', tx_hash)
+    else:
+        logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
