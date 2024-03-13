@@ -12,6 +12,7 @@ from src.config.settings import (
     NETWORK,
     NETWORK_CONFIG,
     SENTRY_DSN,
+    WEB3_LOG_LEVEL,
 )
 from src.execution import get_keeper_balance, get_protocol_config
 from src.exits import process_exits
@@ -24,6 +25,8 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
     level=LOG_LEVEL,
 )
+
+logging.getLogger('web3').setLevel(WEB3_LOG_LEVEL)
 
 logger = logging.getLogger(__name__)
 
