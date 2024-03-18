@@ -1,6 +1,6 @@
 from decouple import Choices, Csv, config
 
-from src.config.networks import HOLESKY, MAINNET, NETWORKS, NetworkConfig
+from src.config.networks import ENABLED_NETWORKS, NETWORKS, NetworkConfig
 
 # connections
 EXECUTION_ENDPOINTS = config('EXECUTION_ENDPOINTS', cast=Csv())
@@ -14,7 +14,7 @@ LOG_LEVEL = config('LOG_LEVEL', default='INFO')
 WEB3_LOG_LEVEL = config('WEB3_LOG_LEVEL', default='INFO')
 
 # network
-NETWORK = config('NETWORK', cast=Choices([MAINNET, HOLESKY]))
+NETWORK = config('NETWORK', cast=Choices(ENABLED_NETWORKS))
 NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 
 # IPFS fetch
