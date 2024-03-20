@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Dict
 
-from eth_typing import ChecksumAddress
+from eth_typing import BlockNumber, ChecksumAddress
 from hexbytes import HexBytes
 from web3.types import EventData
 
@@ -13,6 +13,8 @@ from src.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
+EVENTS_BLOCKS_RANGE_INTERVAL = 24 * 60 * 60  # 24 hrs
+
 
 def _load_abi(abi_path: str) -> Dict:
     current_dir = os.path.dirname(__file__)
@@ -20,11 +22,33 @@ def _load_abi(abi_path: str) -> Dict:
         return json.load(f)
 
 
-class KeeperContract:
-    abi_path = 'abi/IKeeper.json'
+class ContractWrapper:
+    abi_path: str
 
     def __init__(self, address: ChecksumAddress):
         self.contract = execution_client.eth.contract(address=address, abi=_load_abi(self.abi_path))
+
+    async def _get_last_event(
+        self,
+        event_name: str,
+        from_block: BlockNumber,
+        to_block: BlockNumber,
+    ) -> EventData | None:
+        blocks_range = int(EVENTS_BLOCKS_RANGE_INTERVAL // NETWORK_CONFIG.SECONDS_PER_BLOCK)
+        event_cls = getattr(self.contract.events, event_name)
+        while to_block >= from_block:
+            events = await event_cls.get_logs(
+                fromBlock=BlockNumber(max(to_block - blocks_range, from_block)),
+                toBlock=to_block,
+            )
+            if events:
+                return events[-1]
+            to_block = BlockNumber(to_block - blocks_range - 1)
+        return None
+
+
+class KeeperContract(ContractWrapper):
+    abi_path = 'abi/IKeeper.json'
 
     async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:
         return await self.contract.functions.updateRewards(
@@ -50,11 +74,15 @@ class KeeperContract:
     async def get_validators_threshold(self) -> int:
         return await self.contract.functions.validatorsMinOracles().call()
 
-    async def get_config_update_events(self) -> list[EventData]:
-        events = await self.contract.events.ConfigUpdated.get_logs(  # type: ignore
-            fromBlock=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK
+    async def get_config_update_event(self) -> EventData | None:
+        to_block = await execution_client.eth.get_block_number()
+
+        event = await self._get_last_event(
+            event_name='ConfigUpdated',
+            from_block=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK,
+            to_block=to_block,
         )
-        return events
+        return event
 
 
 keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
