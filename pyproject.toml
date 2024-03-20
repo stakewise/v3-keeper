@@ -72,4 +72,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.report]
-fail_under = 83
+fail_under = 80

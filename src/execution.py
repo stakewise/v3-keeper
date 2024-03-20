@@ -17,12 +17,12 @@ APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_P
 
 
 async def get_protocol_config() -> ProtocolConfig:
-    events = await keeper_contract.get_config_update_events()
-    if not events:
+    event = await keeper_contract.get_config_update_event()
+    if not event:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
 
     # fetch IPFS record
-    ipfs_hash = events[-1]['args']['configIpfsHash']
+    ipfs_hash = event['args']['configIpfsHash']
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
     rewards_threshold = await keeper_contract.get_rewards_threshold()
