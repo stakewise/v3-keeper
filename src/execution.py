@@ -6,7 +6,7 @@ from web3.types import Wei
 
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
-from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
+from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
 from src.contracts import keeper_contract
 from src.typings import RewardVoteBody
 
@@ -58,7 +58,7 @@ async def submit_vote(
 ) -> None:
     tx = await keeper_contract.update_rewards(vote, signatures)
     tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=DEFAULT_RETRY_TIME
+        tx, timeout=EXECUTION_TRANSACTION_TIMEOUT
     )
 
     tx_hash = Web3.to_hex(tx)

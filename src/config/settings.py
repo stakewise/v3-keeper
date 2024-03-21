@@ -60,3 +60,5 @@ SENTRY_DSN = config('SENTRY_DSN', default='')
 # Prometheus
 METRICS_HOST = config('METRICS_HOST', default='127.0.0.1')
 METRICS_PORT = config('METRICS_PORT', default=9100)
+
+EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', default=60, cast=int)
