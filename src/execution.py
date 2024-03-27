@@ -6,7 +6,7 @@ from web3.types import Wei
 
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
-from src.config.settings import DEFAULT_RETRY_TIME, NETWORK_CONFIG
+from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
 from src.contracts import keeper_contract
 from src.typings import RewardVoteBody
 
@@ -17,12 +17,12 @@ APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_P
 
 
 async def get_protocol_config() -> ProtocolConfig:
-    events = await keeper_contract.get_config_update_events()
-    if not events:
+    event = await keeper_contract.get_config_update_event()
+    if not event:
         raise ValueError('Failed to fetch IPFS hash of oracles config')
 
     # fetch IPFS record
-    ipfs_hash = events[-1]['args']['configIpfsHash']
+    ipfs_hash = event['args']['configIpfsHash']
     config = await ipfs_fetch_client.fetch_json(ipfs_hash)
 
     rewards_threshold = await keeper_contract.get_rewards_threshold()
@@ -57,5 +57,12 @@ async def submit_vote(
     signatures: bytes,
 ) -> None:
     tx = await keeper_contract.update_rewards(vote, signatures)
-    await execution_client.eth.wait_for_transaction_receipt(tx, timeout=DEFAULT_RETRY_TIME)
-    logger.info('Rewards has been successfully updated. Tx hash: %s', Web3.to_hex(tx))
+    tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
+        tx, timeout=EXECUTION_TRANSACTION_TIMEOUT
+    )
+
+    tx_hash = Web3.to_hex(tx)
+    if tx_receipt['status']:
+        logger.info('Rewards has been successfully updated. Tx hash: %s', tx_hash)
+    else:
+        logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
