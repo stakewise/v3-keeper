@@ -14,7 +14,12 @@ from web3.types import HexStr
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
 from src.config.networks import HOLESKY
-from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
+from src.config.settings import (
+    IGNORED_EXIT_INDEXES,
+    NETWORK,
+    NETWORK_CONFIG,
+    VALIDATORS_FETCH_CHUNK_SIZE,
+)
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
 from src.typings import ValidatorExitShare
@@ -192,7 +197,7 @@ async def _submit_signature(
         return True
     except aiohttp.ClientResponseError as e:
         # Ignore some broken holesky signatures
-        if NETWORK == HOLESKY and validator_index in [1537675, 1537661, 1537662, 1537926]:
+        if NETWORK == HOLESKY and validator_index in IGNORED_EXIT_INDEXES:
             logger.warning(e)
             return False
         logger.exception('Failed to process validator %s exit: %s', validator_index, e)
