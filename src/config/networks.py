@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from ens.constants import EMPTY_ADDR_HEX
 from eth_typing import ChecksumAddress
 from web3 import Web3
 from web3.types import BlockNumber, Wei
