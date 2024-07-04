@@ -61,9 +61,9 @@ NETWORKS = {
     CHIADO: NetworkConfig(
         SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x96Bd48CD98D2CC602b93A2BBbF05d7eEB21CdE8E'
+            '0x13Af1266d8664aF3da4c711E7C86725D4779EA72'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(8630451),
+        KEEPER_GENESIS_BLOCK=BlockNumber(10258082),
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,

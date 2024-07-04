@@ -59,6 +59,9 @@ SENTRY_DSN: str = config('SENTRY_DSN', default='')
 
 # Prometheus
 METRICS_HOST: str = config('METRICS_HOST', default='127.0.0.1')
-METRICS_PORT: int = config('METRICS_PORT', default=9100)
+METRICS_PORT: int = config('METRICS_PORT', default=9100, cast=int)
 
 EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', default=60, cast=int)
+
+# ignore holesky broken vaults validators
+IGNORED_EXIT_INDEXES: list[int] = config('IGNORED_EXIT_INDEXES', cast=Csv(int), default='')
