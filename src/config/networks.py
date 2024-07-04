@@ -51,8 +51,10 @@ NETWORKS = {
     ),
     GNOSIS: NetworkConfig(
         SYMBOL='xDAI',
-        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        KEEPER_GENESIS_BLOCK=BlockNumber(0),
+        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xcAC0e3E35d3BA271cd2aaBE688ac9DB1898C26aa'
+        ),
+        KEEPER_GENESIS_BLOCK=BlockNumber(34778552),
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,
@@ -61,9 +63,9 @@ NETWORKS = {
     CHIADO: NetworkConfig(
         SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x96Bd48CD98D2CC602b93A2BBbF05d7eEB21CdE8E'
+            '0x5f31eD13eBF81B67a9f9498F3d1D2Da553058988'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(8630451),
+        KEEPER_GENESIS_BLOCK=BlockNumber(10627588),
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,
