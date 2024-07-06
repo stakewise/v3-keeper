@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "v3-keeper"
-version = "0.7.6"
+version = "0.8.0"
 description = "StakeWise keeper service is used to collect and push oracle votes to blockchain."
 authors = ["StakeWise Labs <info@stakewise.io>"]
 readme = "README.md"
@@ -28,6 +28,7 @@ faker = "==19.12.0"
 flake8-datetimez = "==20.10.0"
 flake8-print = "==5.0.0"
 coverage = "==7.3.2"
+types-requests = "==2.31.0.20240406"
 
 [tool.bandit]
 exclude_dirs = ["*/tests/*", "src/config/networks.py"]

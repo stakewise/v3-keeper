@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from ens.constants import EMPTY_ADDR_HEX
 from eth_typing import ChecksumAddress
 from web3 import Web3
 from web3.types import BlockNumber, Wei
@@ -51,8 +50,10 @@ NETWORKS = {
     ),
     GNOSIS: NetworkConfig(
         SYMBOL='xDAI',
-        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(EMPTY_ADDR_HEX),
-        KEEPER_GENESIS_BLOCK=BlockNumber(0),
+        KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xcAC0e3E35d3BA271cd2aaBE688ac9DB1898C26aa'
+        ),
+        KEEPER_GENESIS_BLOCK=BlockNumber(34778552),
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,
@@ -61,12 +62,12 @@ NETWORKS = {
     CHIADO: NetworkConfig(
         SYMBOL='xDAI',
         KEEPER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x13Af1266d8664aF3da4c711E7C86725D4779EA72'
+            '0x5f31eD13eBF81B67a9f9498F3d1D2Da553058988'
         ),
-        KEEPER_GENESIS_BLOCK=BlockNumber(10258082),
+        KEEPER_GENESIS_BLOCK=BlockNumber(10627588),
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,
-        KEEPER_MIN_BALANCE=Web3.to_wei('0.1', 'ether'),
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
 }
