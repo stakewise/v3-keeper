@@ -68,6 +68,6 @@ NETWORKS = {
         SECONDS_PER_BLOCK=5,
         SLOTS_PER_EPOCH=16,
         IS_POA=False,
-        KEEPER_MIN_BALANCE=Web3.to_wei('0.1', 'ether'),
+        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
 }
