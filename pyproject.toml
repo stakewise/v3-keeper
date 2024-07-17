@@ -5,6 +5,7 @@ description = "StakeWise keeper service is used to collect and push oracle votes
 authors = ["StakeWise Labs <info@stakewise.io>"]
 readme = "README.md"
 license = "AGPL-3.0-only"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"

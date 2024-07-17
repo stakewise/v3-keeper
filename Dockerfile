@@ -1,5 +1,5 @@
 # `python-base` sets up all our shared environment variables
-FROM python:3.10.13-alpine3.18 as python-base
+FROM python:3.10.14-alpine3.18 as python-base
 
     # python
 ENV PYTHONUNBUFFERED=1 \
@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     \
     # poetry
     # https://python-poetry.org/docs/configuration/#using-environment-variables
-    POETRY_VERSION=1.6.1 \
+    POETRY_VERSION=1.8.3 \
     # make poetry install to this location
     POETRY_HOME="/opt/poetry" \
     # make poetry create the virtual environment in the project's root
