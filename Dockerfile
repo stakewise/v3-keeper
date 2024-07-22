@@ -1,5 +1,5 @@
 # `python-base` sets up all our shared environment variables
-FROM python:3.10.14-alpine3.18 as python-base
+FROM python:3.10.14-alpine3.20 as python-base
 
     # python
 ENV PYTHONUNBUFFERED=1 \
@@ -53,6 +53,9 @@ RUN poetry install --only main
 
 # `production` image used for runtime
 FROM python-base as production
+
+# Remove vulnerable setuptools version (CVE-2024-6345)
+RUN pip3 uninstall setuptools -y
 
 USER nobody
 
