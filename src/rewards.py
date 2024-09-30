@@ -32,6 +32,7 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
 
     current_nonce = await keeper_contract.get_rewards_nonce()
     votes = [vote for vote in votes if vote.nonce == current_nonce]
+    logger.info('all votes: %s', votes)
     if not votes:
         logger.info('No votes with nonce %d', current_nonce)
         return
@@ -43,6 +44,8 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
     if not await _can_submit(winner_vote_count, protocol_config.rewards_threshold):
         logger.warning('Not enough oracle votes, skipping update...')
         return
+    logger.info('winner: %s', winner)
+    logger.info('winner_vote_count: %d', winner_vote_count)
 
     logger.info(
         'Submitting rewards update: root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
@@ -59,11 +62,14 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
             break
 
         if vote.body == winner:
+            logger.info('winner vote instance %s: ', vote)
             signatures += vote.signature
-            signatures_count += 1
+    logger.info('signatures: %s', signatures)
 
     await distribute_json_hash(winner.ipfs_hash)
-
+    logger.info('submit vote: %s', winner)
+    logger.info('submit signatures: %s', signatures)
+    logger.info('submit signatures hex: %s', Web3.to_hex(signatures))
     await submit_vote(
         winner,
         signatures=signatures,
