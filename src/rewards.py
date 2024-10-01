@@ -64,6 +64,7 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
         if vote.body == winner:
             logger.info('winner vote instance %s: ', vote)
             signatures += vote.signature
+            signatures_count += 1
     logger.info('signatures: %s', signatures)
 
     await distribute_json_hash(winner.ipfs_hash)
