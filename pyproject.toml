@@ -75,3 +75,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.report]
 fail_under = 80
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
