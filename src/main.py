@@ -5,6 +5,7 @@ import time
 from sw_utils import InterruptHandler
 
 import src
+from src.clients import execution_client, setup_execution_client
 from src.config.settings import (
     LOG_LEVEL,
     METRICS_HOST,
@@ -37,7 +38,7 @@ def log_start() -> None:
 
 async def main() -> None:
     log_start()
-
+    await setup_execution_client(execution_client)
     await startup_checks()
 
     logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
