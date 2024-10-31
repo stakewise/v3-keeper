@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import aiohttp
 from aiohttp import ClientSession
 from eth_typing.bls import BLSSignature
-from sw_utils import ValidatorStatus
+from sw_utils import ValidatorStatus, get_chain_finalized_head
 from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import HexStr
@@ -38,13 +38,13 @@ EXITING_STATUSES = [
 
 
 async def process_exits(protocol_config: ProtocolConfig) -> None:
-    chain_head = await consensus_client.get_chain_finalized_head(
-        slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
+    chain_head = await get_chain_finalized_head(
+        consensus_client=consensus_client, slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
     )
 
     metrics.epoch.set(chain_head.epoch)
-    metrics.consensus_block.set(chain_head.consensus_block)
-    metrics.execution_block.set(chain_head.execution_block)
+    metrics.consensus_block.set(chain_head.slot)
+    metrics.execution_block.set(chain_head.block_number)
     metrics.execution_ts.set(chain_head.execution_ts)
 
     validator_exits = await _fetch_validator_exits(protocol_config.oracles)
@@ -53,7 +53,7 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
     for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
             validator_ids=validator_indexes[i : i + VALIDATORS_FETCH_CHUNK_SIZE],
-            state_id=str(chain_head.consensus_block),
+            state_id=str(chain_head.slot),
         )
         for validator in validators_batch['data']:
             if validator.get('status') in exited_statuses:

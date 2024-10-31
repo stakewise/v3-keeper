@@ -1,8 +1,4 @@
-from sw_utils import (
-    construct_async_sign_and_send_raw_middleware,
-    get_consensus_client,
-    get_execution_client,
-)
+from sw_utils import get_consensus_client, get_execution_client
 from sw_utils.ipfs import (
     BasePinClient,
     BaseUploadClient,
@@ -14,6 +10,7 @@ from sw_utils.ipfs import (
     QuicknodePinClient,
 )
 from web3 import AsyncWeb3
+from web3.middleware.signing import async_construct_sign_and_send_raw_middleware
 
 from src.accounts import keeper_account
 from src.config import settings
@@ -25,9 +22,14 @@ def build_execution_client() -> AsyncWeb3:
         settings.NETWORK_CONFIG.IS_POA,
         retry_timeout=settings.DEFAULT_RETRY_TIME,
     )
-    w3.middleware_onion.add(construct_async_sign_and_send_raw_middleware(keeper_account))
-    w3.eth.default_account = keeper_account.address
+
     return w3
+
+
+async def setup_execution_client(w3: AsyncWeb3) -> None:
+    """Setup keeper private key"""
+    w3.middleware_onion.add(await async_construct_sign_and_send_raw_middleware(keeper_account))
+    w3.eth.default_account = keeper_account.address
 
 
 execution_client = build_execution_client()
