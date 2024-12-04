@@ -21,7 +21,9 @@ NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 IPFS_FETCH_ENDPOINTS = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
-    default='https://stakewise-v3.infura-ipfs.io/,' 'https://gateway.pinata.cloud,https://ipfs.io',
+    default=','.join(
+        ['https://stakewise-v3.infura-ipfs.io/', 'https://gateway.pinata.cloud', 'https://ipfs.io']
+    ),
 )
 IPFS_CLIENT_TIMEOUT: int = config('IPFS_CLIENT_TIMEOUT', default=60, cast=int)
 IPFS_CLIENT_RETRY_TIMEOUT: int = config('IPFS_CLIENT_RETRY_TIMEOUT', default=120, cast=int)
@@ -63,3 +65,5 @@ EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', def
 
 # ignore holesky broken vaults validators
 IGNORED_EXIT_INDEXES: list[int] = config('IGNORED_EXIT_INDEXES', cast=Csv(int), default='')
+
+ORACLE_TIMEOUT: int = config('ORACLE_TIMEOUT', default=60, cast=int)

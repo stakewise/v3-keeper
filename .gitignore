@@ -2,6 +2,10 @@ __pycache__/
 venv
 dist
 .mypy_cache
+.pytest_cache
 .idea
 local.env
 *.env
+.vscode
+.DS_Store
+.history

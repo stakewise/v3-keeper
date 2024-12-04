@@ -44,8 +44,14 @@ good-names = ["db", "i", "el", "e", "w", "f", "w3"]
 extend-ignore = ["E203", "E501"]  # line length will be checked by pylint
 
 [tool.mypy]
+exclude = ["test"]
 ignore_missing_imports = true
 python_version = "3.10"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
 
 [tool.isort]
 profile = "black"

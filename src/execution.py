@@ -1,5 +1,7 @@
 import logging
 
+from eth_typing import HexStr
+from hexbytes import HexBytes
 from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
@@ -8,7 +10,6 @@ from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
 from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
 from src.contracts import keeper_contract
-from src.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
 
@@ -52,17 +53,9 @@ async def check_keeper_balance() -> None:
         )
 
 
-async def submit_vote(
-    vote: RewardVoteBody,
-    signatures: bytes,
-) -> None:
-    tx = await keeper_contract.update_rewards(vote, signatures)
+async def wait_for_tx_status(tx_hash: HexBytes | HexStr) -> int:
     tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=EXECUTION_TRANSACTION_TIMEOUT
+        tx_hash, timeout=EXECUTION_TRANSACTION_TIMEOUT
     )
 
-    tx_hash = Web3.to_hex(tx)
-    if tx_receipt['status']:
-        logger.info('Rewards has been successfully updated. Tx hash: %s', tx_hash)
-    else:
-        logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
+    return tx_receipt['status']

@@ -3,12 +3,13 @@ import logging
 import os
 from typing import Dict
 
-from eth_typing import BlockNumber, ChecksumAddress
-from hexbytes import HexBytes
+from eth_typing import BlockNumber, ChecksumAddress, HexStr
+from web3 import Web3
 from web3.types import EventData
 
 from src.clients import execution_client
 from src.config.settings import NETWORK_CONFIG
+from src.distributor.typings import DistributorRewardVoteBody
 from src.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,8 @@ class ContractWrapper:
 class KeeperContract(ContractWrapper):
     abi_path = 'abi/IKeeper.json'
 
-    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexBytes:
-        return await self.contract.functions.updateRewards(
+    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexStr:
+        tx_hash = await self.contract.functions.updateRewards(
             (
                 vote.root,
                 vote.avg_reward_per_second,
@@ -59,7 +60,9 @@ class KeeperContract(ContractWrapper):
                 vote.ipfs_hash,
                 signatures,
             ),
-        ).transact()  # type: ignore
+        ).transact()
+
+        return Web3.to_hex(tx_hash)
 
     async def get_rewards_nonce(self) -> int:
         return await self.contract.functions.rewardsNonce().call()
@@ -85,4 +88,28 @@ class KeeperContract(ContractWrapper):
         return event
 
 
+class MerkleDistributorContract(ContractWrapper):
+    abi_path = 'abi/IMerkleDistributor.json'
+
+    async def nonce(self) -> int:
+        return await self.contract.functions.nonce().call()
+
+    async def rewards_min_oracles(self) -> int:
+        return await self.contract.functions.rewardsMinOracles().call()
+
+    async def set_rewards_root(
+        self, vote: DistributorRewardVoteBody, signatures: list[HexStr]
+    ) -> HexStr:
+        tx_hash = await self.contract.functions.setRewardsRoot(
+            vote.root,
+            vote.ipfs_hash,
+            b''.join(Web3.to_bytes(hexstr=signature) for signature in signatures),
+        ).transact()
+
+        return Web3.to_hex(tx_hash)
+
+
+merkle_distributor_contract = MerkleDistributorContract(
+    NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
+)
 keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)

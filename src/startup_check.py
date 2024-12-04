@@ -7,6 +7,7 @@ from sw_utils.decorators import retry_aiohttp_errors
 
 from src.accounts import keeper_account
 from src.clients import get_consensus_client, get_execution_client
+from src.common import aiohttp_fetch
 from src.config.settings import (
     CONSENSUS_ENDPOINTS,
     DEFAULT_RETRY_TIME,
@@ -21,7 +22,7 @@ IPFS_HASH_EXAMPLE = 'QmawUdo17Fvo7xa6ARCUSMV1eoVwPtVuzx8L8Crj2xozWm'
 
 
 # pylint: disable-next=too-many-statements
-async def startup_checks():
+async def startup_checks() -> None:
     logger.info('Checking keeper account %s...', keeper_account.address)
     await check_keeper_balance()
 
@@ -112,7 +113,7 @@ async def startup_checks():
     await _check_execution_nodes()
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
-    async def _check_ipfs_fetch_nodes():
+    async def _check_ipfs_fetch_nodes() -> None:
         logger.info('Checking connection to ipfs fetch nodes...')
 
         healthy_ipfs_endpoint = []
@@ -135,7 +136,7 @@ async def startup_checks():
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(
             *[
-                _aiohttp_fetch(session=session, url=endpoint)
+                aiohttp_fetch(session=session, url=endpoint)
                 for oracle in oracles
                 for endpoint in oracle.endpoints
             ],
@@ -155,9 +156,3 @@ async def startup_checks():
         logger.info('Connected to oracles at %s', ', '.join(healthy_oracles))
     else:
         logger.warning("Can't connect to oracles set")
-
-
-async def _aiohttp_fetch(session, url) -> str:
-    async with session.get(url=url) as response:
-        response.raise_for_status()
-    return url

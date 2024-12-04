@@ -6,7 +6,7 @@ from src.config.settings import METRICS_HOST, METRICS_PORT
 
 
 class Metrics:
-    def __init__(self):
+    def __init__(self) -> None:
         self.app_version = Info('app_version', 'V3 Keeper version')
         self.keeper_account = Info('keeper_account', 'V3 Keeper account')
         self.epoch = Gauge('epoch', 'Chain finalized head: Epoch')
@@ -26,10 +26,10 @@ class Metrics:
         self.processed_exits = Counter('processed_exits', 'Number of exits keeper processed')
         self.keeper_balance = Gauge('keeper_balance', 'Keeper balance')
 
-    def set_app_version(self):
+    def set_app_version(self) -> None:
         self.app_version.info({'version': _get_project_meta()['version']})
 
-    def set_keeper_account(self):
+    def set_keeper_account(self) -> None:
         self.keeper_account.info({'keeper_account': keeper_account.address})
 
 
