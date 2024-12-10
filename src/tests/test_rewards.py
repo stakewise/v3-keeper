@@ -11,6 +11,7 @@ from web3 import Web3
 from web3.types import Timestamp
 
 from src.rewards import (
+    RewardsCache,
     _fetch_reward_votes,
     _fetch_vote_from_oracle,
     keeper_contract,
@@ -31,7 +32,9 @@ async def test_early():
         'can_update_rewards',
         return_value=False,
     ), patch('src.rewards.submit_vote') as submit_mock:
-        await process_rewards(get_mocked_protocol_config(oracles_count=5))
+        await process_rewards(
+            get_mocked_protocol_config(oracles_count=5), rewards_cache=RewardsCache()
+        )
         submit_mock.assert_not_called()
 
 
@@ -76,7 +79,10 @@ async def test_basic():
     ), patch(
         'src.rewards.submit_vote',
     ) as submit_mock:
-        await process_rewards(get_mocked_protocol_config(oracles=oracles, rewards_threshold=3))
+        await process_rewards(
+            get_mocked_protocol_config(oracles=oracles, rewards_threshold=3),
+            rewards_cache=RewardsCache(),
+        )
 
         submit_mock.assert_called_once_with(
             RewardVoteBody(
