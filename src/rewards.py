@@ -12,6 +12,7 @@ from web3.types import Timestamp
 from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
 from src.execution import wait_for_tx_status
+from src.ipfs import distribute_json_hash
 from src.metrics import metrics
 from src.typings import RewardVote, RewardVoteBody
 
@@ -60,6 +61,8 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
         if vote.body == winner:
             signatures += vote.signature
             signatures_count += 1
+
+    await distribute_json_hash(winner.ipfs_hash)
 
     await _submit_vote(
         winner,

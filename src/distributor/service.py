@@ -13,6 +13,7 @@ from src.config import settings
 from src.contracts import merkle_distributor_contract
 from src.distributor.typings import DistributorRewardVote, DistributorRewardVoteBody
 from src.execution import wait_for_tx_status
+from src.ipfs import distribute_json_hash
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,9 @@ async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
     if winner_vote_count < await merkle_distributor_contract.rewards_min_oracles():
         logger.warning('Not enough oracle votes, skipping distributor rewards update...')
         return
+
+    logger.info('Distributing ipfs hash %s', winner.ipfs_hash)
+    await distribute_json_hash(winner.ipfs_hash)
 
     logger.info(
         'Submitting distributor rewards update: root=%s, ipfs hash=%s',
