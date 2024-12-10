@@ -167,6 +167,35 @@ class TestFetchVoteFromOracle:
         assert fetched_vote == vote_2
 
 
+class TestRewardsCache:
+    async def test_rewards_cache(self):
+        cache = RewardsCache()
+        assert not cache.rewards()
+        ts1 = Timestamp(random.randint(100, 10000))
+        vote1 = create_vote(update_timestamp=ts1)
+        cache.update([vote1])
+
+        assert cache.rewards() == [[vote1]]
+
+        ts2 = ts1 + 100
+        vote2 = create_vote(update_timestamp=ts2)
+        cache.update([vote2])
+        assert cache.rewards() == [[vote1], [vote2]]
+
+        vote3 = create_vote(update_timestamp=ts1)
+        cache.update([vote3])
+        assert cache.rewards() == [[vote1, vote3], [vote2]]
+
+        vote4 = create_vote(update_timestamp=ts1)
+        vote5 = create_vote(update_timestamp=ts2)
+        vote6 = create_vote(update_timestamp=ts2)
+        cache.update([vote4, vote5, vote6])
+        assert cache.rewards() == [[vote1, vote3, vote4], [vote2, vote5, vote6]]
+
+        cache.clear()
+        assert not cache.rewards()
+
+
 def _get_random_ipfs_hash():
     return ''.join(
         random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)

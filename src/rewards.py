@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from collections import Counter, defaultdict
+from collections import Counter
+from typing import Iterable
 from urllib.parse import urljoin
 
 import aiohttp
@@ -19,28 +20,28 @@ from src.typings import RewardVote, RewardVoteBody
 logger = logging.getLogger(__name__)
 
 REWARD_VOTE_URL_PATH = '/'
-CACHE_SIZE = 10
+CACHE_SIZE = 100
 
 
 class RewardsCache:
-    data: dict[int, dict]
+    def __init__(self) -> None:
+        self.data: dict[Timestamp, list[RewardVote]] = {}
 
-    def __init__(self):
-        self.data = defaultdict(dict)
-
-    def update(self, votes: list[RewardVote]):
+    def update(self, votes: list[RewardVote]) -> None:
         while len(self.data) > CACHE_SIZE:
             oldest_ts = min(self.data.keys())
             del self.data[oldest_ts]
 
         for vote in votes:
-            self.data[vote.body.update_timestamp][vote.oracle_address] = vote
+            if not self.data.get(vote.body.update_timestamp):
+                self.data[vote.body.update_timestamp] = []
+            self.data[vote.body.update_timestamp].append(vote)
 
-    def rewards(self):
-        return self.data.values()
+    def rewards(self) -> list[list[RewardVote]]:
+        return list(self.data.values())
 
-    def clear(self):
-        self.data = defaultdict(dict)
+    def clear(self) -> None:
+        self.data = {}
 
 
 async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: RewardsCache) -> None:
@@ -55,47 +56,63 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
     current_nonce = await keeper_contract.get_rewards_nonce()
     votes = [vote for vote in votes if vote.nonce == current_nonce]
 
-    rewards_cache.update(votes)
     if not votes:
         logger.info('No votes with nonce %d', current_nonce)
         return
 
-    for rewards in rewards_cache.rewards():
-        timestamp_votes = rewards.values()
-        counter = Counter([vote.body for vote in timestamp_votes])
+    rewards_cache.update(votes)
 
+    timestamp_votes, winner = _find_earliest_winner(
+        rewards_cache=rewards_cache, rewards_threshold=protocol_config.rewards_threshold
+    )
+    if winner is None or timestamp_votes is None:
+        logger.warning('Not enough oracle votes to update rewards, skipping update...')
+        return
+
+    logger.info(
+        'Submitting rewards update: '
+        'root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
+        winner.root,
+        winner.ipfs_hash,
+        winner.update_timestamp,
+        winner.avg_reward_per_second,
+    )
+
+    signatures_count = 0
+    signatures = b''
+    for vote in sorted(timestamp_votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
+        if signatures_count >= protocol_config.rewards_threshold:
+            break
+
+        if vote.body == winner:
+            signatures += vote.signature
+            signatures_count += 1
+
+    await distribute_json_hash(winner.ipfs_hash)
+
+    await submit_vote(
+        winner,
+        signatures=signatures,
+    )
+    rewards_cache.clear()
+
+
+def _find_earliest_winner(
+    rewards_cache: RewardsCache, rewards_threshold: int
+) -> tuple[Iterable[RewardVote], RewardVoteBody] | tuple[None, None]:
+    for timestamp_votes in rewards_cache.rewards():
+        counter = Counter([vote.body for vote in timestamp_votes])
         winner, winner_vote_count = counter.most_common(1)[0]
 
-        if not await _can_submit(winner_vote_count, protocol_config.rewards_threshold):
-            logger.warning('Not enough oracle votes, skipping update...')
+        if not _can_submit(winner_vote_count, rewards_threshold):
+            logger.warning(
+                'Not enough oracle votes for timestamp %s, skipping update...',
+                winner.update_timestamp,
+            )
             continue
+        return timestamp_votes, winner
 
-        logger.info(
-            'Submitting rewards update: '
-            'root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
-            winner.root,
-            winner.ipfs_hash,
-            winner.update_timestamp,
-            winner.avg_reward_per_second,
-        )
-
-        signatures_count = 0
-        signatures = b''
-        for vote in sorted(timestamp_votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
-            if signatures_count >= protocol_config.rewards_threshold:
-                break
-
-            if vote.body == winner:
-                signatures += vote.signature
-                signatures_count += 1
-
-        await distribute_json_hash(winner.ipfs_hash)
-
-        await submit_vote(
-            winner,
-            signatures=signatures,
-        )
-        rewards_cache.clear()
+    return None, None
 
 
 async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
@@ -116,7 +133,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     return votes
 
 
-async def _can_submit(signatures_count: int, threshold) -> bool:
+def _can_submit(signatures_count: int, threshold) -> bool:
     return signatures_count >= threshold
 
 
