@@ -168,6 +168,6 @@ async def _submit_vote(
     tx_status = await wait_for_tx_status(tx_hash)
 
     if tx_status:
-        logger.info('Rewards has been successfully updated. Tx hash: %s', tx_hash)
+        logger.info('Rewards have been successfully updated. Tx hash: %s', tx_hash)
     else:
         logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
