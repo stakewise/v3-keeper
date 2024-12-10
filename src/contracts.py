@@ -97,6 +97,9 @@ class MerkleDistributorContract(ContractWrapper):
     async def rewards_min_oracles(self) -> int:
         return await self.contract.functions.rewardsMinOracles().call()
 
+    async def get_next_rewards_root_update_timestamp(self) -> int:
+        return await self.contract.functions.getNextRewardsRootUpdateTimestamp().call()
+
     async def set_rewards_root(
         self, vote: DistributorRewardVoteBody, signatures: list[HexStr]
     ) -> HexStr:

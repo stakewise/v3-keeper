@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from eth_typing import ChecksumAddress, HexStr
+from web3.types import Timestamp
 
 
 @dataclass(frozen=True)
@@ -17,5 +18,6 @@ class DistributorRewardVoteBody:
 class DistributorRewardVote:
     oracle_address: ChecksumAddress
     nonce: int
+    update_timestamp: Timestamp
     signature: HexStr
     body: DistributorRewardVoteBody
