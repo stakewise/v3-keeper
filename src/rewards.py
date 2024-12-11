@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections import Counter
+from typing import Iterable
 from urllib.parse import urljoin
 
 import aiohttp
@@ -19,9 +20,40 @@ from src.typings import RewardVote, RewardVoteBody
 logger = logging.getLogger(__name__)
 
 REWARD_VOTE_URL_PATH = '/'
+DEFAULT_CACHE_SIZE = 100
 
 
-async def process_rewards(protocol_config: ProtocolConfig) -> None:
+class RewardsCache:
+    """
+    Cache solves the problem of oracle synchronization.
+    On some networks, oracles fail to synchronize within a specific epoch.
+    Storing votes in the cache makes it easier to catch up with synchronization.
+    """
+
+    def __init__(self, cache_size: int = DEFAULT_CACHE_SIZE) -> None:
+        self.data: dict[Timestamp, list[RewardVote]] = {}
+        self.cache_size = cache_size
+
+    def update(self, votes: list[RewardVote]) -> None:
+        for vote in votes:
+            if not self.data.get(vote.body.update_timestamp):
+                self.data[vote.body.update_timestamp] = []
+            self.data[vote.body.update_timestamp].append(vote)
+
+        while len(self.data) > self.cache_size:
+            oldest_ts = min(self.data.keys())
+            del self.data[oldest_ts]
+
+    def rewards(self) -> list[list[RewardVote]]:
+        rewards = list(self.data.values())
+        rewards.sort(key=lambda item: item[0].body.update_timestamp)
+        return rewards
+
+    def clear(self) -> None:
+        self.data = {}
+
+
+async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: RewardsCache) -> None:
     if not await keeper_contract.can_update_rewards():
         return
 
@@ -32,20 +64,23 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
 
     current_nonce = await keeper_contract.get_rewards_nonce()
     votes = [vote for vote in votes if vote.nonce == current_nonce]
+
     if not votes:
         logger.info('No votes with nonce %d', current_nonce)
         return
 
-    counter = Counter([vote.body for vote in votes])
+    rewards_cache.update(votes)
 
-    winner, winner_vote_count = counter.most_common(1)[0]
-
-    if not await _can_submit(winner_vote_count, protocol_config.rewards_threshold):
-        logger.warning('Not enough oracle votes, skipping update...')
+    timestamp_votes, winner = _find_earliest_winner(
+        rewards_cache=rewards_cache, rewards_threshold=protocol_config.rewards_threshold
+    )
+    if winner is None or timestamp_votes is None:
+        logger.warning('Not enough oracle votes to update rewards, skipping update...')
         return
 
     logger.info(
-        'Submitting rewards update: root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
+        'Submitting rewards update: '
+        'root=%s, ipfs hash=%s, timestamp=%d, avg_reward_per_second=%d',
         winner.root,
         winner.ipfs_hash,
         winner.update_timestamp,
@@ -54,7 +89,7 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
 
     signatures_count = 0
     signatures = b''
-    for vote in sorted(votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
+    for vote in sorted(timestamp_votes, key=lambda x: Web3.to_int(hexstr=x.oracle_address)):
         if signatures_count >= protocol_config.rewards_threshold:
             break
 
@@ -68,6 +103,25 @@ async def process_rewards(protocol_config: ProtocolConfig) -> None:
         winner,
         signatures=signatures,
     )
+    rewards_cache.clear()
+
+
+def _find_earliest_winner(
+    rewards_cache: RewardsCache, rewards_threshold: int
+) -> tuple[Iterable[RewardVote], RewardVoteBody] | tuple[None, None]:
+    for timestamp_votes in rewards_cache.rewards():
+        counter = Counter([vote.body for vote in timestamp_votes])
+        winner, winner_vote_count = counter.most_common(1)[0]
+
+        if not _can_submit(winner_vote_count, rewards_threshold):
+            logger.warning(
+                'Not enough oracle votes for timestamp %s, checking next timestamp...',
+                winner.update_timestamp,
+            )
+            continue
+        return timestamp_votes, winner
+
+    return None, None
 
 
 async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
@@ -88,7 +142,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     return votes
 
 
-async def _can_submit(signatures_count: int, threshold) -> bool:
+def _can_submit(signatures_count: int, threshold) -> bool:
     return signatures_count >= threshold
 
 
