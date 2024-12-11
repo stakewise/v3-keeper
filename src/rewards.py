@@ -38,7 +38,8 @@ class RewardsCache:
         for vote in votes:
             if not self.data.get(vote.body.update_timestamp):
                 self.data[vote.body.update_timestamp] = []
-            self.data[vote.body.update_timestamp].append(vote)
+            if vote not in self.data[vote.body.update_timestamp]:
+                self.data[vote.body.update_timestamp].append(vote)
 
         while len(self.data) > self.cache_size:
             oldest_ts = min(self.data.keys())
