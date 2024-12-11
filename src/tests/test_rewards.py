@@ -1,5 +1,6 @@
 import random
 import string
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import patch
 
@@ -194,7 +195,8 @@ class TestRewardsCache:
 
         ts3 = ts2 + 100
         vote7 = create_vote(update_timestamp=ts3)
-        cache.update([vote7])
+        vote8 = deepcopy(vote7)
+        cache.update([vote7, vote8])
         assert cache.rewards() == [[vote2, vote5, vote6], [vote7]]
 
         cache.clear()
