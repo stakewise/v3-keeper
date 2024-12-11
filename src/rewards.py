@@ -20,25 +20,34 @@ from src.typings import RewardVote, RewardVoteBody
 logger = logging.getLogger(__name__)
 
 REWARD_VOTE_URL_PATH = '/'
-CACHE_SIZE = 100
+DEFAULT_CACHE_SIZE = 100
 
 
 class RewardsCache:
-    def __init__(self) -> None:
+    """
+    Cache solves the problem of oracle synchronization.
+    On some networks, oracles fail to synchronize within a specific epoch.
+    Storing votes in the cache makes it easier to catch up with synchronization.
+    """
+
+    def __init__(self, cache_size: int = DEFAULT_CACHE_SIZE) -> None:
         self.data: dict[Timestamp, list[RewardVote]] = {}
+        self.cache_size = cache_size
 
     def update(self, votes: list[RewardVote]) -> None:
-        while len(self.data) > CACHE_SIZE:
-            oldest_ts = min(self.data.keys())
-            del self.data[oldest_ts]
-
         for vote in votes:
             if not self.data.get(vote.body.update_timestamp):
                 self.data[vote.body.update_timestamp] = []
             self.data[vote.body.update_timestamp].append(vote)
 
+        while len(self.data) > self.cache_size:
+            oldest_ts = min(self.data.keys())
+            del self.data[oldest_ts]
+
     def rewards(self) -> list[list[RewardVote]]:
-        return list(self.data.values())
+        rewards = list(self.data.values())
+        rewards.sort(key=lambda item: item[0].body.update_timestamp)
+        return rewards
 
     def clear(self) -> None:
         self.data = {}
@@ -106,7 +115,7 @@ def _find_earliest_winner(
 
         if not _can_submit(winner_vote_count, rewards_threshold):
             logger.warning(
-                'Not enough oracle votes for timestamp %s, skipping update...',
+                'Not enough oracle votes for timestamp %s, checking next timestamp...',
                 winner.update_timestamp,
             )
             continue

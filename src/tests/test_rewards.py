@@ -169,7 +169,7 @@ class TestFetchVoteFromOracle:
 
 class TestRewardsCache:
     async def test_rewards_cache(self):
-        cache = RewardsCache()
+        cache = RewardsCache(cache_size=2)
         assert not cache.rewards()
         ts1 = Timestamp(random.randint(100, 10000))
         vote1 = create_vote(update_timestamp=ts1)
@@ -191,6 +191,11 @@ class TestRewardsCache:
         vote6 = create_vote(update_timestamp=ts2)
         cache.update([vote4, vote5, vote6])
         assert cache.rewards() == [[vote1, vote3, vote4], [vote2, vote5, vote6]]
+
+        ts3 = ts2 + 100
+        vote7 = create_vote(update_timestamp=ts3)
+        cache.update([vote7])
+        assert cache.rewards() == [[vote2, vote5, vote6], [vote7]]
 
         cache.clear()
         assert not cache.rewards()
