@@ -6,12 +6,18 @@ from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp import ClientSession
-from sw_utils import Oracle, ProtocolConfig
+from sw_utils import Oracle, ProtocolConfig, get_chain_finalized_head
 from web3 import Web3
-from web3.types import Timestamp
+from web3.types import BlockNumber, Timestamp
 
-from src.clients import ipfs_fetch_client, ipfs_upload_client
+from src.clients import (
+    consensus_client,
+    execution_client,
+    ipfs_fetch_client,
+    ipfs_upload_client,
+)
 from src.common import aiohttp_fetch
+from src.config.settings import GENESIS_FEE_CHECK_ENABLED, NETWORK_CONFIG
 from src.contracts import keeper_contract
 from src.execution import submit_vote
 from src.metrics import metrics
@@ -79,6 +85,11 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
     if winner is None or timestamp_votes is None:
         logger.warning('Not enough oracle votes to update rewards, skipping update...')
         return
+
+    if GENESIS_FEE_CHECK_ENABLED:
+        if not await check_genesis_fees_transfer():
+            logger.warning('Missing eth transfer to V2 fees escrow contract, skipping update...')
+            return
 
     logger.info(
         'Submitting rewards update: '
@@ -227,3 +238,44 @@ async def distribute_json_hash(origin_ipfs_hash: str) -> None:
         raise ValueError(
             f'Different IPFS hashes: origin={origin_ipfs_hash}, distributed={ipfs_hash}'
         )
+
+
+async def check_genesis_fees_transfer() -> bool:
+    chain_head = await get_chain_finalized_head(
+        consensus_client=consensus_client, slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
+    )
+    prev_block = await get_last_rewards_update_block(block_number=chain_head.block_number)
+    if not prev_block:
+        return False
+    for block_number in reversed(range(prev_block, chain_head.block_number)):
+        block = await execution_client.eth.get_block(block_number, True)
+        for transaction in block['transactions']:
+            if not transaction['to'] or not transaction['value']:  # type: ignore
+                continue
+            if (
+                Web3.to_checksum_address(transaction['to'])  # type: ignore
+                == NETWORK_CONFIG.V2_FEES_ESCROW_CONTRACT_ADDRESS
+                and transaction['value'] > 0  # type: ignore
+            ):
+                return True
+
+    return False
+
+
+async def get_last_rewards_update_block(block_number: BlockNumber) -> BlockNumber | None:
+    """Fetches the last rewards update."""
+    SECONDS_PER_MONTH: int = 2628000
+    APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
+
+    last_event = await keeper_contract.get_rewards_updated_event(
+        from_block=max(
+            NETWORK_CONFIG.KEEPER_GENESIS_BLOCK,
+            BlockNumber(block_number - APPROX_BLOCKS_PER_MONTH),
+            BlockNumber(0),
+        ),
+        to_block=block_number,
+    )
+    if not last_event:
+        return None
+
+    return BlockNumber(last_event['blockNumber'])

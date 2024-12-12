@@ -84,5 +84,14 @@ class KeeperContract(ContractWrapper):
         )
         return event
 
+    async def get_rewards_updated_event(
+        self, from_block: BlockNumber, to_block: BlockNumber
+    ) -> EventData | None:
+        return await self._get_last_event(
+            'RewardsUpdated',
+            from_block=from_block,
+            to_block=to_block,
+        )
+
 
 keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)

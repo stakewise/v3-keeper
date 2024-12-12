@@ -63,3 +63,6 @@ EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', def
 
 # ignore holesky broken vaults validators
 IGNORED_EXIT_INDEXES: list[int] = config('IGNORED_EXIT_INDEXES', cast=Csv(int), default='')
+
+# temporary check for genesis vault APY smoothing transactions
+GENESIS_FEE_CHECK_ENABLED: bool = config('GENESIS_FEE_CHECK_ENABLED', default=False, cast=bool)
