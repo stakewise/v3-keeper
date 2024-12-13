@@ -40,7 +40,8 @@ async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
 
     winner, winner_vote_count = counter.most_common(1)[0]
 
-    if winner_vote_count < await merkle_distributor_contract.rewards_min_oracles():
+    rewards_min_oracles = await merkle_distributor_contract.rewards_min_oracles()
+    if winner_vote_count < rewards_min_oracles:
         logger.warning('Not enough oracle votes, skipping distributor rewards update...')
         return
 
@@ -61,7 +62,7 @@ async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
     signatures: list[HexStr] = []
 
     for vote in votes:
-        if len(signatures) >= protocol_config.rewards_threshold:
+        if len(signatures) >= rewards_min_oracles:
             break
 
         if vote.body == winner:
