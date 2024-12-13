@@ -44,6 +44,10 @@ async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
         logger.warning('Not enough oracle votes, skipping distributor rewards update...')
         return
 
+    if winner.root == await merkle_distributor_contract.rewards_root():
+        logger.info('Distributor rewards root is already up to date')
+        return
+
     logger.info(
         'Submitting distributor rewards update: root=%s, ipfs hash=%s',
         winner.root,

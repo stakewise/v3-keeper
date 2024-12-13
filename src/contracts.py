@@ -91,6 +91,10 @@ class KeeperContract(ContractWrapper):
 class MerkleDistributorContract(ContractWrapper):
     abi_path = 'abi/IMerkleDistributor.json'
 
+    async def rewards_root(self) -> HexStr:
+        rewards_root = await self.contract.functions.rewardsRoot().call()
+        return Web3.to_hex(rewards_root)
+
     async def nonce(self) -> int:
         return await self.contract.functions.nonce().call()
 
