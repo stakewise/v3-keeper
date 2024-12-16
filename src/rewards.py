@@ -87,7 +87,7 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
         return
 
     if GENESIS_FEE_CHECK_ENABLED:
-        if not await check_genesis_fees_transfer():
+        if not await check_genesis_fees_transfer(winner):
             logger.warning('Missing eth transfer to V2 fees escrow contract, skipping update...')
             return
 
@@ -240,7 +240,7 @@ async def distribute_json_hash(origin_ipfs_hash: str) -> None:
         )
 
 
-async def check_genesis_fees_transfer() -> bool:
+async def check_genesis_fees_transfer(winner: RewardVoteBody) -> bool:
     chain_head = await get_chain_finalized_head(
         consensus_client=consensus_client, slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
     )
@@ -256,6 +256,7 @@ async def check_genesis_fees_transfer() -> bool:
                 Web3.to_checksum_address(transaction['to'])  # type: ignore
                 == NETWORK_CONFIG.V2_FEES_ESCROW_CONTRACT_ADDRESS
                 and transaction['value'] > 0  # type: ignore
+                and block['timestamp'] > winner.update_timestamp
             ):
                 return True
 
