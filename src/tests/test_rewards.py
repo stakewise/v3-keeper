@@ -1,5 +1,6 @@
 import random
 import string
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from web3 import Web3
 from web3.types import Timestamp
 
 from src.rewards import (
+    RewardsCache,
     _fetch_reward_votes,
     _fetch_vote_from_oracle,
     keeper_contract,
@@ -30,8 +32,10 @@ async def test_early():
         keeper_contract,
         'can_update_rewards',
         return_value=False,
-    ), patch('src.rewards._submit_vote') as submit_mock:
-        await process_rewards(get_mocked_protocol_config(oracles_count=5))
+    ), patch('src.rewards.submit_vote') as submit_mock:
+        await process_rewards(
+            get_mocked_protocol_config(oracles_count=5), rewards_cache=RewardsCache()
+        )
         submit_mock.assert_not_called()
 
 
@@ -74,7 +78,10 @@ async def test_basic():
     ), patch(
         'src.rewards._submit_vote',
     ) as submit_mock:
-        await process_rewards(get_mocked_protocol_config(oracles=oracles, rewards_threshold=3))
+        await process_rewards(
+            get_mocked_protocol_config(oracles=oracles, rewards_threshold=3),
+            rewards_cache=RewardsCache(),
+        )
 
         submit_mock.assert_called_once_with(
             RewardVoteBody(
@@ -157,6 +164,41 @@ class TestFetchVoteFromOracle:
             fetched_vote = await _fetch_vote_from_oracle(client_session, oracle)
 
         assert fetched_vote == vote_2
+
+
+class TestRewardsCache:
+    async def test_rewards_cache(self):
+        cache = RewardsCache(cache_size=2)
+        assert not cache.rewards()
+        ts1 = Timestamp(random.randint(100, 10000))
+        vote1 = create_vote(update_timestamp=ts1)
+        cache.update([vote1])
+
+        assert cache.rewards() == [[vote1]]
+
+        ts2 = ts1 + 100
+        vote2 = create_vote(update_timestamp=ts2)
+        cache.update([vote2])
+        assert cache.rewards() == [[vote1], [vote2]]
+
+        vote3 = create_vote(update_timestamp=ts1)
+        cache.update([vote3])
+        assert cache.rewards() == [[vote1, vote3], [vote2]]
+
+        vote4 = create_vote(update_timestamp=ts1)
+        vote5 = create_vote(update_timestamp=ts2)
+        vote6 = create_vote(update_timestamp=ts2)
+        cache.update([vote4, vote5, vote6])
+        assert cache.rewards() == [[vote1, vote3, vote4], [vote2, vote5, vote6]]
+
+        ts3 = ts2 + 100
+        vote7 = create_vote(update_timestamp=ts3)
+        vote8 = deepcopy(vote7)
+        cache.update([vote7, vote8])
+        assert cache.rewards() == [[vote2, vote5, vote6], [vote7]]
+
+        cache.clear()
+        assert not cache.rewards()
 
 
 def _get_random_ipfs_hash():

@@ -19,7 +19,7 @@ from src.distributor.service import process_distributor_rewards
 from src.execution import get_keeper_balance, get_protocol_config
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
-from src.rewards import process_rewards
+from src.rewards import RewardsCache, process_rewards
 from src.startup_check import startup_checks
 
 logging.basicConfig(
@@ -46,6 +46,7 @@ async def main() -> None:
     await metrics_server()
     logger.info('Started keeper service...')
 
+    rewards_cache = RewardsCache()
     with InterruptHandler() as interrupt_handler:
         while not interrupt_handler.exit:
             start_time = time.time()
@@ -60,6 +61,7 @@ async def main() -> None:
                 results = await asyncio.gather(
                     process_rewards(
                         protocol_config=protocol_config,
+                        rewards_cache=rewards_cache,
                     ),
                     process_exits(
                         protocol_config=protocol_config,
