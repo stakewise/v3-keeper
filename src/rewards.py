@@ -256,7 +256,7 @@ async def check_genesis_fees_transfer(winner: RewardVoteBody) -> bool:
                 Web3.to_checksum_address(transaction['to'])  # type: ignore
                 == NETWORK_CONFIG.V2_FEES_ESCROW_CONTRACT_ADDRESS
                 and transaction['value'] > 0  # type: ignore
-                and block['timestamp'] > winner.update_timestamp
+                and block['timestamp'] < winner.update_timestamp
             ):
                 return True
 
