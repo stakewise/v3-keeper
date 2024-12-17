@@ -110,7 +110,6 @@ async def _fetch_vote_from_oracle(session: ClientSession, oracle: Oracle) -> Dis
     max_nonce = max(v.nonce for v in votes)
     votes = [v for v in votes if v.nonce == max_nonce]
 
-    # todo: find the vote with greatest update_timestamp?
     return votes[0]
 
 

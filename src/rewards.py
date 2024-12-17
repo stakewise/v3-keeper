@@ -141,7 +141,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     return votes
 
 
-async def _can_submit(signatures_count: int, threshold: int) -> bool:
+def _can_submit(signatures_count: int, threshold: int) -> bool:
     return signatures_count >= threshold
 
 
