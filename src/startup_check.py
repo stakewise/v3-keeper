@@ -132,25 +132,21 @@ async def startup_checks() -> None:
     logger.info('Checking connection to oracles set...')
     protocol_config = await get_protocol_config()
     oracles = protocol_config.oracles
+    oracle_endpoints = [endpoint for oracle in oracles for endpoint in oracle.endpoints]
 
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(
-            *[
-                aiohttp_fetch(session=session, url=endpoint)
-                for oracle in oracles
-                for endpoint in oracle.endpoints
-            ],
+            *[aiohttp_fetch(session=session, url=endpoint) for endpoint in oracle_endpoints],
             return_exceptions=True
         )
 
     healthy_oracles = []
-    for result in results:
-        if isinstance(result, BaseException):
-            logger.error(result)
+    for endpoint, result in zip(oracle_endpoints, results):
+        if isinstance(result, Exception):
+            logger.error('Error from oracle %s: %s', endpoint, result)
             continue
 
-        if result:
-            healthy_oracles.append(result)
+        healthy_oracles.append(endpoint)
 
     if healthy_oracles:
         logger.info('Connected to oracles at %s', ', '.join(healthy_oracles))
