@@ -136,7 +136,7 @@ async def _fetch_exit_shares_from_endpoint(
 ) -> list[ValidatorExitShare]:
     url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
-    exits = []
+    exits: list[ValidatorExitShare] = []
     if not data:
         return []
     for exit_data in data:

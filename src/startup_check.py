@@ -140,7 +140,7 @@ async def startup_checks() -> None:
             return_exceptions=True
         )
 
-    healthy_oracles = []
+    healthy_oracles: list[str] = []
     for endpoint, result in zip(oracle_endpoints, results):
         if isinstance(result, Exception):
             logger.error('Error from oracle %s: %s', endpoint, result)
