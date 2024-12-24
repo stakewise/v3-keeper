@@ -34,10 +34,12 @@ async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
     next_update_timestamp = (
         await merkle_distributor_contract.get_next_rewards_root_update_timestamp()
     )
-    counter = Counter(
-        [vote.body for vote in votes if vote.update_timestamp > next_update_timestamp]
-    )
+    votes = [vote for vote in votes if vote.update_timestamp > next_update_timestamp]
+    if not votes:
+        logger.info('No votes with timestamp > next update timestamp')
+        return
 
+    counter = Counter([vote.body for vote in votes])
     winner, winner_vote_count = counter.most_common(1)[0]
 
     rewards_min_oracles = await merkle_distributor_contract.rewards_min_oracles()

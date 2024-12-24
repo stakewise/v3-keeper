@@ -13,6 +13,8 @@ def create_distributor_reward_vote(
     oracle: Oracle | None = None,
     nonce: int | None = None,
     update_timestamp: Timestamp | None = None,
+    root: HexStr | None = None,
+    ipfs_hash: str | None = None,
 ) -> DistributorRewardVote:
     oracle = oracle or create_oracle()
     nonce = nonce or random.randint(1, 1000)
@@ -24,7 +26,7 @@ def create_distributor_reward_vote(
         update_timestamp=update_timestamp,
         signature=faker.account_signature(),
         body=DistributorRewardVoteBody(
-            root=HexStr('0x00'),
-            ipfs_hash='ipfs_hash',
+            root=root or faker.eth_proof(),
+            ipfs_hash=ipfs_hash or faker.ipfs_hash(),
         ),
     )
