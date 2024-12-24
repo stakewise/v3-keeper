@@ -80,7 +80,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.report]
-fail_under = 70
+fail_under = 75
 omit = ["*/tests/*", "conftest.py"]
 
 [tool.pytest.ini_options]

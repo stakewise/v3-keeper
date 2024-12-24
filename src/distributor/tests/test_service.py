@@ -1,3 +1,4 @@
+import asyncio
 import random
 from contextlib import contextmanager
 from unittest import mock
@@ -208,8 +209,16 @@ class TestFetchVoteFromOracle:
         oracle = create_oracle(num_endpoints=3)
 
         with mock.patch(
-            'src.distributor.service._fetch_vote_from_endpoint', side_effect=RuntimeError()
+            'src.distributor.service.aiohttp_fetch', side_effect=asyncio.TimeoutError()
         ), pytest.raises(RuntimeError):
+            await _fetch_vote_from_oracle(client_session, oracle)
+
+    async def test_all_endpoints_empty_vote(self, client_session):
+        oracle = create_oracle(num_endpoints=3)
+
+        with mock.patch('src.distributor.service.aiohttp_fetch', side_effect={}), pytest.raises(
+            RuntimeError
+        ):
             await _fetch_vote_from_oracle(client_session, oracle)
 
     async def test_single_endpoint_available(self, client_session):
@@ -217,11 +226,11 @@ class TestFetchVoteFromOracle:
         vote = create_distributor_reward_vote(oracle=oracle)
 
         with mock.patch(
-            'src.distributor.service._fetch_vote_from_endpoint',
+            'src.distributor.service.aiohttp_fetch',
             side_effect=[
-                RuntimeError(),
-                RuntimeError(),
-                vote,
+                asyncio.TimeoutError(),
+                {},
+                _vote_to_json(vote),
             ],
         ):
             fetched_vote = await _fetch_vote_from_oracle(client_session, oracle)
@@ -235,9 +244,19 @@ class TestFetchVoteFromOracle:
         vote_3 = create_distributor_reward_vote(oracle=oracle, nonce=5)
 
         with mock.patch(
-            'src.distributor.service._fetch_vote_from_endpoint',
-            side_effect=[RuntimeError(), vote_1, vote_2, vote_3],
+            'src.distributor.service.aiohttp_fetch',
+            side_effect=[{}, _vote_to_json(vote_1), _vote_to_json(vote_2), _vote_to_json(vote_3)],
         ):
             fetched_vote = await _fetch_vote_from_oracle(client_session, oracle)
 
         assert fetched_vote == vote_2
+
+
+def _vote_to_json(vote: DistributorRewardVote) -> dict:
+    return {
+        'root': vote.body.root,
+        'ipfs_hash': vote.body.ipfs_hash,
+        'nonce': vote.nonce,
+        'update_timestamp': vote.update_timestamp,
+        'signature': vote.signature,
+    }
