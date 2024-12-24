@@ -3,6 +3,7 @@ venv
 dist
 .mypy_cache
 .pytest_cache
+.coverage
 .idea
 local.env
 *.env
