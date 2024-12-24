@@ -1,5 +1,4 @@
 import random
-import string
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import patch
@@ -21,8 +20,6 @@ from src.rewards import (
 from src.tests.factories import create_oracle, create_vote
 from src.typings import RewardVote, RewardVoteBody
 
-pytestmark = pytest.mark.asyncio
-
 
 async def test_early():
     with patch(
@@ -32,7 +29,7 @@ async def test_early():
         keeper_contract,
         'can_update_rewards',
         return_value=False,
-    ), patch('src.rewards.submit_vote') as submit_mock:
+    ), patch('src.rewards._submit_vote') as submit_mock:
         await process_rewards(
             get_mocked_protocol_config(oracles_count=5), rewards_cache=RewardsCache()
         )
@@ -42,7 +39,7 @@ async def test_early():
 async def test_basic():
     nonce = random.randint(100, 1000)
     root, wrong_root = faker.eth_proof(), faker.eth_proof()
-    ipfs_hash, wrong_ipfs_hash = _get_random_ipfs_hash(), _get_random_ipfs_hash
+    ipfs_hash, wrong_ipfs_hash = faker.ipfs_hash(), faker.ipfs_hash()
     ts = Timestamp(random.randint(1600000000, 1700000000))
     oracles = [
         Oracle(public_key=faker.ecies_public_key(), endpoints=[f'https://example{i}.com'])
@@ -76,9 +73,7 @@ async def test_basic():
         'src.rewards._fetch_reward_votes',
         return_value=votes,
     ), patch(
-        'src.rewards.distribute_json_hash', return_value=None
-    ), patch(
-        'src.rewards.submit_vote',
+        'src.rewards._submit_vote',
     ) as submit_mock:
         await process_rewards(
             get_mocked_protocol_config(oracles=oracles, rewards_threshold=3),
@@ -201,10 +196,3 @@ class TestRewardsCache:
 
         cache.clear()
         assert not cache.rewards()
-
-
-def _get_random_ipfs_hash():
-    return ''.join(
-        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-        for _ in range(46)
-    )

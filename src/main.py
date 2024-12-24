@@ -15,6 +15,7 @@ from src.config.settings import (
     SENTRY_DSN,
     WEB3_LOG_LEVEL,
 )
+from src.distributor.service import process_distributor_rewards
 from src.execution import get_keeper_balance, get_protocol_config
 from src.exits import process_exits
 from src.metrics import metrics, metrics_server
@@ -63,6 +64,9 @@ async def main() -> None:
                         rewards_cache=rewards_cache,
                     ),
                     process_exits(
+                        protocol_config=protocol_config,
+                    ),
+                    process_distributor_rewards(
                         protocol_config=protocol_config,
                     ),
                     return_exceptions=True,

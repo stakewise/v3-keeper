@@ -10,10 +10,9 @@ from sw_utils import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import Timestamp
 
-from src.clients import ipfs_fetch_client, ipfs_upload_client
 from src.common import aiohttp_fetch
 from src.contracts import keeper_contract
-from src.execution import submit_vote
+from src.execution import wait_for_tx_status
 from src.metrics import metrics
 from src.typings import RewardVote, RewardVoteBody
 
@@ -99,9 +98,7 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
             signatures += vote.signature
             signatures_count += 1
 
-    await distribute_json_hash(winner.ipfs_hash)
-
-    await submit_vote(
+    await _submit_vote(
         winner,
         signatures=signatures,
     )
@@ -144,7 +141,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
     return votes
 
 
-def _can_submit(signatures_count: int, threshold) -> bool:
+def _can_submit(signatures_count: int, threshold: int) -> bool:
     return signatures_count >= threshold
 
 
@@ -216,14 +213,14 @@ async def _fetch_vote_from_endpoint(
     return vote
 
 
-async def distribute_json_hash(origin_ipfs_hash: str) -> None:
-    if not origin_ipfs_hash:
-        return
-    if not origin_ipfs_hash.startswith('bafkr'):
-        raise ValueError('Only v1 version ipfs hashes can be distributed')
-    ipfs_data = await ipfs_fetch_client.fetch_json(origin_ipfs_hash)
-    ipfs_hash = await ipfs_upload_client.upload_json(ipfs_data)
-    if ipfs_hash != origin_ipfs_hash:
-        raise ValueError(
-            f'Different IPFS hashes: origin={origin_ipfs_hash}, distributed={ipfs_hash}'
-        )
+async def _submit_vote(
+    vote: RewardVoteBody,
+    signatures: bytes,
+) -> None:
+    tx_hash = await keeper_contract.update_rewards(vote, signatures)
+    tx_status = await wait_for_tx_status(tx_hash)
+
+    if tx_status:
+        logger.info('Rewards have been successfully updated. Tx hash: %s', tx_hash)
+    else:
+        logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
