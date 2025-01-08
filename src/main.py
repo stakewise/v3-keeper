@@ -95,5 +95,6 @@ if __name__ == '__main__':
             environment=NETWORK,
         )
         sentry_sdk.set_tag('network', NETWORK)
+        sentry_sdk.set_tag('project_version', src.__version__)
 
     asyncio.run(main())
