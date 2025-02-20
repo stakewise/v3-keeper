@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from collections import Counter
 from typing import Iterable
 from urllib.parse import urljoin
@@ -11,8 +12,9 @@ from web3 import Web3
 from web3.types import Timestamp
 
 from src.common import aiohttp_fetch
+from src.config.settings import NETWORK_CONFIG
 from src.contracts import keeper_contract
-from src.execution import wait_for_tx_status
+from src.execution import gas_manager, wait_for_tx_status
 from src.metrics import metrics
 from src.typings import RewardVote, RewardVoteBody
 
@@ -217,7 +219,20 @@ async def _submit_vote(
     vote: RewardVoteBody,
     signatures: bytes,
 ) -> None:
-    tx_hash = await keeper_contract.update_rewards(vote, signatures)
+    # trying to submit with basic gas
+    attempts_with_basic_gas = 3
+    for _ in range(attempts_with_basic_gas):
+        try:
+            tx_hash = await keeper_contract.update_rewards(vote, signatures)
+            break
+        except ValueError as e:
+            logger.exception(e)
+            time.sleep(NETWORK_CONFIG.SECONDS_PER_BLOCK)
+    else:
+        # use high priority fee
+        tx_params = await gas_manager.get_high_priority_tx_params()
+        tx_hash = await keeper_contract.update_rewards(vote, signatures, tx_params)
+
     tx_status = await wait_for_tx_status(tx_hash)
 
     if tx_status:

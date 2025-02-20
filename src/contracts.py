@@ -5,7 +5,7 @@ from typing import Dict
 
 from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from web3 import Web3
-from web3.types import EventData
+from web3.types import EventData, TxParams
 
 from src.clients import execution_client
 from src.config.settings import NETWORK_CONFIG
@@ -51,7 +51,11 @@ class ContractWrapper:
 class KeeperContract(ContractWrapper):
     abi_path = 'abi/IKeeper.json'
 
-    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexStr:
+    async def update_rewards(
+        self, vote: RewardVoteBody, signatures: bytes, tx_params: TxParams | None = None
+    ) -> HexStr:
+        if not tx_params:
+            tx_params = {}
         tx_hash = await self.contract.functions.updateRewards(
             (
                 vote.root,
@@ -60,7 +64,7 @@ class KeeperContract(ContractWrapper):
                 vote.ipfs_hash,
                 signatures,
             ),
-        ).transact()
+        ).transact(tx_params)
 
         return Web3.to_hex(tx_hash)
 
