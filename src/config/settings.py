@@ -67,3 +67,8 @@ EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', def
 IGNORED_EXIT_INDEXES: list[int] = config('IGNORED_EXIT_INDEXES', cast=Csv(int), default='')
 
 ORACLE_TIMEOUT: int = config('ORACLE_TIMEOUT', default=60, cast=int)
+
+# gas settings
+MAX_FEE_PER_GAS_GWEI: int = config('MAX_FEE_PER_GAS_GWEI', default=100, cast=int)
+PRIORITY_FEE_NUM_BLOCKS: int = config('PRIORITY_FEE_NUM_BLOCKS', default=10, cast=int)
+PRIORITY_FEE_PERCENTILE: float = config('PRIORITY_FEE_PERCENTILE', default=80.0, cast=float)
