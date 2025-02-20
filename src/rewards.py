@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import time
 from collections import Counter
 from typing import Iterable
 from urllib.parse import urljoin
@@ -221,17 +220,18 @@ async def _submit_vote(
 ) -> None:
     # trying to submit with basic gas
     attempts_with_basic_gas = 3
-    for _ in range(attempts_with_basic_gas):
+    for i in range(attempts_with_basic_gas):
         try:
             tx_hash = await keeper_contract.update_rewards(vote, signatures)
             break
         except ValueError as e:
             logger.exception(e)
-            time.sleep(NETWORK_CONFIG.SECONDS_PER_BLOCK)
+            if i < attempts_with_basic_gas - 1:  # skip last sleep
+                await asyncio.sleep(NETWORK_CONFIG.SECONDS_PER_BLOCK)
     else:
         # use high priority fee
         tx_params = await gas_manager.get_high_priority_tx_params()
-        tx_hash = await keeper_contract.update_rewards(vote, signatures, tx_params)
+        tx_hash = await keeper_contract.update_rewards(vote, signatures, tx_params=tx_params)
 
     tx_status = await wait_for_tx_status(tx_hash)
 
