@@ -2,37 +2,19 @@ import logging
 
 from eth_typing import HexStr
 from hexbytes import HexBytes
-from sw_utils import GasManager, ProtocolConfig, build_protocol_config
+from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
 
 from src.accounts import keeper_account
 from src.clients import execution_client, ipfs_fetch_client
-from src.config.settings import (
-    EXECUTION_TRANSACTION_TIMEOUT,
-    MAX_FEE_PER_GAS_GWEI,
-    NETWORK_CONFIG,
-    PRIORITY_FEE_NUM_BLOCKS,
-    PRIORITY_FEE_PERCENTILE,
-)
+from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
 from src.contracts import keeper_contract
 
 logger = logging.getLogger(__name__)
 
 SECONDS_PER_MONTH: int = 2628000
 APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
-
-
-def build_gas_manager() -> GasManager:
-    return GasManager(
-        execution_client=execution_client,
-        max_fee_per_gas_gwei=MAX_FEE_PER_GAS_GWEI,
-        priority_fee_num_blocks=PRIORITY_FEE_NUM_BLOCKS,
-        priority_fee_percentile=PRIORITY_FEE_PERCENTILE,
-    )
-
-
-gas_manager = build_gas_manager()
 
 
 async def get_protocol_config() -> ProtocolConfig:

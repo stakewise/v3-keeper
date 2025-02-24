@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "v3-keeper"
-version = "v0.12.0"
+version = "v0.12.1"
 description = "StakeWise keeper service is used to collect and push oracle votes to blockchain."
 authors = ["StakeWise Labs <info@stakewise.io>"]
 readme = "README.md"
