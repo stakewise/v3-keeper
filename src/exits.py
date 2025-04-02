@@ -13,11 +13,7 @@ from web3.types import HexStr
 
 from src.clients import consensus_client
 from src.common import aiohttp_fetch
-from src.config.settings import (
-    NETWORK,
-    NETWORK_CONFIG,
-    VALIDATORS_FETCH_CHUNK_SIZE,
-)
+from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.crypto import reconstruct_shared_bls_signature
 from src.metrics import metrics
 from src.typings import ValidatorExitShare
