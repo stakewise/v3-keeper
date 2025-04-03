@@ -1,12 +1,12 @@
 from dataclasses import asdict, dataclass
 
-from sw_utils.networks import CHIADO, GNOSIS, HOLESKY, MAINNET
+from sw_utils.networks import CHIADO, GNOSIS, HOODI, MAINNET
 from sw_utils.networks import NETWORKS as BASE_NETWORKS
 from sw_utils.networks import BaseNetworkConfig
 from web3 import Web3
 from web3.types import Wei
 
-ENABLED_NETWORKS = [MAINNET, HOLESKY, GNOSIS, CHIADO]
+ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, CHIADO]
 
 
 @dataclass
@@ -21,9 +21,9 @@ NETWORKS = {
         SYMBOL='ETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
-    HOLESKY: NetworkConfig(
-        **asdict(BASE_NETWORKS[HOLESKY]),
-        SYMBOL='HolETH',
+    HOODI: NetworkConfig(
+        **asdict(BASE_NETWORKS[HOODI]),
+        SYMBOL='HoodiETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
     ),
     GNOSIS: NetworkConfig(
