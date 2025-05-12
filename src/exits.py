@@ -56,7 +56,6 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
 
     if not validator_exits:
         return
-    fork_epochs = await _get_fork_epochs()
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
 
@@ -72,7 +71,6 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
         exit_signature = reconstruct_shared_bls_signature(signatures)
 
         if await _submit_signature(
-            fork_epochs=fork_epochs,
             validator_index=validator_index,
             exit_signature=Web3.to_hex(exit_signature),
         ):
@@ -175,23 +173,18 @@ async def _fetch_fork_epochs(state_id: str = 'head') -> int:
     return current_fork.epoch
 
 
-async def _submit_signature(
-    fork_epochs: list[int], validator_index: int, exit_signature: HexStr
-) -> bool:
+async def _submit_signature(validator_index: int, exit_signature: HexStr) -> bool:
     """
     It's hard to determine which fork version was used for the exit signature
     Try with several previous fork versions
     """
-    exception = None
-    for epoch in fork_epochs:
-        try:
-            await consensus_client.submit_voluntary_exit(
-                epoch=epoch,
-                validator_index=validator_index,
-                signature=exit_signature,
-            )
-            return True
-        except aiohttp.ClientResponseError as e:
-            exception = e
-    logger.exception('Failed to process validator %s exit: %s', validator_index, exception)
-    return False
+    try:
+        await consensus_client.submit_voluntary_exit(
+            epoch=NETWORK_CONFIG.SHAPELLA_EPOCH,
+            validator_index=validator_index,
+            signature=exit_signature,
+        )
+        return True
+    except aiohttp.ClientResponseError as e:
+        logger.exception('Failed to process validator %s exit: %s', validator_index, e)
+        return False
