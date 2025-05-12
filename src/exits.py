@@ -20,7 +20,6 @@ from src.typings import ValidatorExitShare
 
 logger = logging.getLogger(__name__)
 
-FORKS_CHECK_DEEP = 3
 EXIT_VOTE_URL_PATH = '/exits'
 
 EXITING_STATUSES = [
@@ -151,26 +150,6 @@ async def _fetch_exit_shares_from_endpoint(
     metrics.processed_exits.inc(len(exits))
 
     return exits
-
-
-async def _get_fork_epochs() -> list[int]:
-    fork_epochs = []
-    fork_epoch = await _fetch_fork_epochs()
-    fork_epochs.append(fork_epoch)
-
-    while len(fork_epochs) < FORKS_CHECK_DEEP and fork_epoch > 0:
-        prev_fork_slot: int = (
-            ((fork_epoch - 1) * NETWORK_CONFIG.SLOTS_PER_EPOCH) + NETWORK_CONFIG.SLOTS_PER_EPOCH - 1
-        )
-        fork_epoch = await _fetch_fork_epochs(state_id=str(prev_fork_slot))
-        fork_epochs.append(fork_epoch)
-
-    return fork_epochs
-
-
-async def _fetch_fork_epochs(state_id: str = 'head') -> int:
-    current_fork = await consensus_client.get_consensus_fork(state_id)
-    return current_fork.epoch
 
 
 async def _submit_signature(validator_index: int, exit_signature: HexStr) -> bool:
