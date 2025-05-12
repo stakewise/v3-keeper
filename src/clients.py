@@ -1,14 +1,5 @@
 from sw_utils import GasManager, get_consensus_client, get_execution_client
-from sw_utils.ipfs import (
-    BasePinClient,
-    BaseUploadClient,
-    FilebasePinClient,
-    IpfsFetchClient,
-    IpfsMultiUploadClient,
-    IpfsUploadClient,
-    PinataUploadClient,
-    QuicknodePinClient,
-)
+from sw_utils.ipfs import IpfsFetchClient
 from web3 import AsyncWeb3
 from web3.middleware.signing import async_construct_sign_and_send_raw_middleware
 
@@ -52,48 +43,6 @@ consensus_client = get_consensus_client(
 )
 gas_manager = build_gas_manager()
 
-
-def build_ipfs_upload_client(include_pin_clients: bool = True) -> IpfsMultiUploadClient:
-    upload_clients: list[BaseUploadClient] = []
-
-    if settings.IPFS_LOCAL_CLIENT_ENDPOINT:
-        upload_clients.append(IpfsUploadClient(settings.IPFS_LOCAL_CLIENT_ENDPOINT))
-
-    if settings.IPFS_INFURA_CLIENT_USERNAME and settings.IPFS_INFURA_CLIENT_PASSWORD:
-        ipfs_client = IpfsUploadClient(
-            settings.IPFS_INFURA_CLIENT_ENDPOINT,
-            settings.IPFS_INFURA_CLIENT_USERNAME,
-            settings.IPFS_INFURA_CLIENT_PASSWORD,
-        )
-        upload_clients.append(ipfs_client)
-
-    if settings.IPFS_PINATA_API_KEY and settings.IPFS_PINATA_SECRET_KEY:
-        pinata_client = PinataUploadClient(
-            settings.IPFS_PINATA_API_KEY, settings.IPFS_PINATA_SECRET_KEY
-        )
-        upload_clients.append(pinata_client)
-
-    if not upload_clients:
-        raise ValueError(
-            'No IPFS upload clients settings. '
-            'Please provide IPFS_LOCAL_CLIENT_ENDPOINT or third party IPFS services settings.'
-        )
-
-    pin_clients: list[BasePinClient] = []
-
-    if include_pin_clients:
-        if settings.IPFS_FILEBASE_API_TOKEN:
-            filebase_pin_client = FilebasePinClient(api_token=settings.IPFS_FILEBASE_API_TOKEN)
-            pin_clients.append(filebase_pin_client)
-
-        if settings.IPFS_QUICKNODE_API_TOKEN:
-            quicknode_pin_client = QuicknodePinClient(api_token=settings.IPFS_QUICKNODE_API_TOKEN)
-            pin_clients.append(quicknode_pin_client)
-
-    return IpfsMultiUploadClient(upload_clients=upload_clients, pin_clients=pin_clients)
-
-
-ipfs_upload_client = build_ipfs_upload_client()
 
 ipfs_fetch_client = IpfsFetchClient(
     settings.IPFS_FETCH_ENDPOINTS,

@@ -78,9 +78,6 @@ class KeeperContract(ContractWrapper):
     async def get_rewards_threshold(self) -> int:
         return await self.contract.functions.rewardsMinOracles().call()
 
-    async def get_validators_threshold(self) -> int:
-        return await self.contract.functions.validatorsMinOracles().call()
-
     async def get_config_update_event(self) -> EventData | None:
         to_block = await execution_client.eth.get_block_number()
 

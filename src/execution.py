@@ -13,9 +13,6 @@ from src.contracts import keeper_contract
 
 logger = logging.getLogger(__name__)
 
-SECONDS_PER_MONTH: int = 2628000
-APPROX_BLOCKS_PER_MONTH: int = int(SECONDS_PER_MONTH // NETWORK_CONFIG.SECONDS_PER_BLOCK)
-
 
 async def get_protocol_config() -> ProtocolConfig:
     event = await keeper_contract.get_config_update_event()
