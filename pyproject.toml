@@ -79,6 +79,11 @@ exclude = '''
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.vulture]
+ignore_names = [
+    "default_account",  # execution client
+]
+
 [tool.coverage.report]
 fail_under = 75
 omit = ["*/tests/*", "conftest.py"]
