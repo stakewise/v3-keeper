@@ -55,8 +55,6 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
 
     if not validator_exits:
         return
-
-    current_fork_epoch, previous_fork_epoch = await _get_fork_epochs()
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
 
@@ -72,8 +70,6 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
         exit_signature = reconstruct_shared_bls_signature(signatures)
 
         if await _submit_signature(
-            current_fork_epoch=current_fork_epoch,
-            previous_fork_epoch=previous_fork_epoch,
             validator_index=validator_index,
             exit_signature=Web3.to_hex(exit_signature),
         ):
@@ -156,39 +152,14 @@ async def _fetch_exit_shares_from_endpoint(
     return exits
 
 
-async def _get_fork_epochs() -> tuple[int, int]:
-    current_fork = await consensus_client.get_consensus_fork(state_id='head')
-    prev_fork_slot: int = (
-        ((current_fork.epoch - 1) * NETWORK_CONFIG.SLOTS_PER_EPOCH)
-        + NETWORK_CONFIG.SLOTS_PER_EPOCH
-        - 1
-    )
-    previous_fork = await consensus_client.get_consensus_fork(state_id=str(prev_fork_slot))
-    return current_fork.epoch, previous_fork.epoch
-
-
-async def _submit_signature(
-    current_fork_epoch: int, previous_fork_epoch: int, validator_index: int, exit_signature: HexStr
-) -> bool:
-    # try with current fork version
+async def _submit_signature(validator_index: int, exit_signature: HexStr) -> bool:
     try:
         await consensus_client.submit_voluntary_exit(
-            epoch=current_fork_epoch,
-            validator_index=validator_index,
-            signature=exit_signature,
-        )
-        return True
-    except aiohttp.ClientResponseError:
-        pass
-
-    # try with previous fork version
-    try:
-        await consensus_client.submit_voluntary_exit(
-            epoch=previous_fork_epoch,
+            epoch=NETWORK_CONFIG.SHAPELLA_EPOCH,
             validator_index=validator_index,
             signature=exit_signature,
         )
         return True
     except aiohttp.ClientResponseError as e:
         logger.exception('Failed to process validator %s exit: %s', validator_index, e)
-    return False
+        return False
