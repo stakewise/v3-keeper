@@ -153,10 +153,6 @@ async def _fetch_exit_shares_from_endpoint(
 
 
 async def _submit_signature(validator_index: int, exit_signature: HexStr) -> bool:
-    """
-    It's hard to determine which fork version was used for the exit signature
-    Try with several previous fork versions
-    """
     try:
         await consensus_client.submit_voluntary_exit(
             epoch=NETWORK_CONFIG.SHAPELLA_EPOCH,
