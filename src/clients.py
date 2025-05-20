@@ -29,11 +29,13 @@ async def setup_execution_client(w3: AsyncWeb3) -> None:
 
 
 def build_gas_manager() -> GasManager:
+    min_effective_priority_fee_per_gas = settings.NETWORK_CONFIG.MIN_EFFECTIVE_PRIORITY_FEE_PER_GAS
     return GasManager(
         execution_client=execution_client,
         max_fee_per_gas_gwei=MAX_FEE_PER_GAS_GWEI,
         priority_fee_num_blocks=PRIORITY_FEE_NUM_BLOCKS,
         priority_fee_percentile=PRIORITY_FEE_PERCENTILE,
+        min_effective_priority_fee_per_gas=min_effective_priority_fee_per_gas,
     )
 
 
