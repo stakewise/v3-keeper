@@ -136,7 +136,7 @@ async def _transaction_gas_wrapper(
                 code = e.args[0].get('code')
             if not code or code != -32010:
                 raise e
-            logger.exception(e)
+            logger.warning(e)
             if i < ATTEMPTS_WITH_DEFAULT_GAS - 1:  # skip last sleep
                 await asyncio.sleep(NETWORK_CONFIG.SECONDS_PER_BLOCK)
 
