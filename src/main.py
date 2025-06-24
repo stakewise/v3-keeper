@@ -13,6 +13,7 @@ from src.config.settings import (
     NETWORK,
     NETWORK_CONFIG,
     SENTRY_DSN,
+    SKIP_DISTRIBUTOR_REWARDS,
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
@@ -58,7 +59,7 @@ async def main() -> None:
                     await interrupt_handler.sleep(60)
                     continue
 
-                results = await asyncio.gather(
+                tasks = [
                     process_rewards(
                         protocol_config=protocol_config,
                         rewards_cache=rewards_cache,
@@ -66,9 +67,15 @@ async def main() -> None:
                     process_exits(
                         protocol_config=protocol_config,
                     ),
-                    process_distributor_rewards(
-                        protocol_config=protocol_config,
-                    ),
+                ]
+                if not SKIP_DISTRIBUTOR_REWARDS:
+                    tasks.append(
+                        process_distributor_rewards(
+                            protocol_config=protocol_config,
+                        )
+                    )
+                results = await asyncio.gather(
+                    *tasks,
                     return_exceptions=True,
                 )
 
