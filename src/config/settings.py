@@ -8,6 +8,7 @@ CONSENSUS_ENDPOINTS: list[str] = config('CONSENSUS_ENDPOINTS', cast=Csv())
 
 # keeper
 PRIVATE_KEY: str = config('PRIVATE_KEY')
+SKIP_DISTRIBUTOR_REWARDS: bool = config('SKIP_DISTRIBUTOR_REWARDS', default=False, cast=bool)
 
 # common
 LOG_LEVEL: str = config('LOG_LEVEL', default='INFO')
