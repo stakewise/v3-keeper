@@ -1,15 +1,7 @@
 from dataclasses import dataclass
 
 from eth_typing import ChecksumAddress, HexStr
-from eth_typing.bls import BLSSignature
 from web3.types import Timestamp
-
-
-@dataclass
-class ValidatorExitShare:
-    validator_index: int
-    exit_signature_share: BLSSignature
-    share_index: int
 
 
 @dataclass(frozen=True)

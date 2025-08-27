@@ -5,7 +5,9 @@ import time
 from sw_utils import InterruptHandler
 
 import src
-from src.clients import execution_client, setup_execution_client
+from src.common.clients import execution_client, setup_execution_client
+from src.common.execution import get_keeper_balance, get_protocol_config
+from src.common.startup_check import startup_checks
 from src.config.settings import (
     LOG_LEVEL,
     METRICS_HOST,
@@ -17,11 +19,9 @@ from src.config.settings import (
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
-from src.execution import get_keeper_balance, get_protocol_config
-from src.exits import process_exits
+from src.exits.service import process_exits
 from src.metrics import metrics, metrics_server
-from src.rewards import RewardsCache, process_rewards
-from src.startup_check import startup_checks
+from src.rewards.service import RewardsCache, process_rewards
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',

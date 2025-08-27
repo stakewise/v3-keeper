@@ -10,26 +10,27 @@ from sw_utils.typings import Oracle
 from web3 import Web3
 from web3.types import Timestamp
 
-from src.rewards import (
+from src.common.tests.factories import create_oracle
+from src.rewards.service import (
     RewardsCache,
     _fetch_reward_votes,
     _fetch_vote_from_oracle,
     keeper_contract,
     process_rewards,
 )
-from src.tests.factories import create_oracle, create_vote
-from src.typings import RewardVote, RewardVoteBody
+from src.rewards.tests.factories import create_vote
+from src.rewards.typings import RewardVote, RewardVoteBody
 
 
 async def test_early():
     with patch(
-        'src.rewards.aiohttp_fetch',
+        'src.rewards.service.aiohttp_fetch',
         return_value=[],
     ), patch.object(
         keeper_contract,
         'can_update_rewards',
         return_value=False,
-    ), patch('src.rewards._submit_vote') as submit_mock:
+    ), patch('src.rewards.service._submit_vote') as submit_mock:
         await process_rewards(
             get_mocked_protocol_config(oracles_count=5), rewards_cache=RewardsCache()
         )
@@ -65,15 +66,15 @@ async def test_basic():
         if vote.body.root == root:
             signatures += vote.signature
 
-    with patch('src.rewards.aiohttp_fetch', return_value=[]), patch.object(
+    with patch('src.rewards.service.aiohttp_fetch', return_value=[]), patch.object(
         keeper_contract,
         'can_update_rewards',
         return_value=True,
     ), patch.object(keeper_contract, 'get_rewards_nonce', return_value=nonce), patch(
-        'src.rewards._fetch_reward_votes',
+        'src.rewards.service._fetch_reward_votes',
         return_value=votes,
     ), patch(
-        'src.rewards._submit_vote',
+        'src.rewards.service._submit_vote',
     ) as submit_mock:
         await process_rewards(
             get_mocked_protocol_config(oracles=oracles, rewards_threshold=3),
@@ -99,7 +100,7 @@ class TestFetchRewardVotes:
         vote_3 = create_vote(oracle=oracles[3])
 
         with mock.patch(
-            'src.rewards._fetch_vote_from_endpoint',
+            'src.rewards.service._fetch_vote_from_endpoint',
             side_effect=[RuntimeError(), vote_1, vote_2, vote_3, RuntimeError()],
         ):
             votes = await _fetch_reward_votes(oracles)
@@ -112,7 +113,7 @@ class TestFetchVoteFromOracle:
         oracle = create_oracle(num_endpoints=3)
 
         with mock.patch(
-            'src.rewards._fetch_vote_from_endpoint', side_effect=RuntimeError()
+            'src.rewards.service._fetch_vote_from_endpoint', side_effect=RuntimeError()
         ), pytest.raises(RuntimeError):
             await _fetch_vote_from_oracle(client_session, oracle)
 
@@ -121,7 +122,7 @@ class TestFetchVoteFromOracle:
         vote = create_vote(oracle=oracle)
 
         with mock.patch(
-            'src.rewards._fetch_vote_from_endpoint',
+            'src.rewards.service._fetch_vote_from_endpoint',
             side_effect=[
                 RuntimeError(),
                 RuntimeError(),
@@ -139,7 +140,7 @@ class TestFetchVoteFromOracle:
         vote_3 = create_vote(oracle=oracle, nonce=5)
 
         with mock.patch(
-            'src.rewards._fetch_vote_from_endpoint',
+            'src.rewards.service._fetch_vote_from_endpoint',
             side_effect=[RuntimeError(), vote_1, vote_2, vote_3],
         ):
             fetched_vote = await _fetch_vote_from_oracle(client_session, oracle)
@@ -155,7 +156,7 @@ class TestFetchVoteFromOracle:
         vote_3 = create_vote(oracle=oracle, nonce=5, update_timestamp=vote_1.body.update_timestamp)
 
         with mock.patch(
-            'src.rewards._fetch_vote_from_endpoint',
+            'src.rewards.service._fetch_vote_from_endpoint',
             side_effect=[RuntimeError(), vote_1, vote_2, vote_3],
         ):
             fetched_vote = await _fetch_vote_from_oracle(client_session, oracle)

@@ -8,11 +8,11 @@ from aiohttp import ClientSession, ClientTimeout
 from eth_typing import HexStr
 from sw_utils import Oracle, ProtocolConfig
 
-from src.common import aiohttp_fetch
+from src.common.contracts import merkle_distributor_contract
+from src.common.execution import wait_for_tx_status
+from src.common.utils import aiohttp_fetch
 from src.config import settings
-from src.contracts import merkle_distributor_contract
 from src.distributor.typings import DistributorRewardVote, DistributorRewardVoteBody
-from src.execution import wait_for_tx_status
 
 logger = logging.getLogger(__name__)
 
