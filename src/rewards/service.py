@@ -10,11 +10,11 @@ from sw_utils import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import Timestamp
 
-from src.common import aiohttp_fetch
-from src.contracts import keeper_contract
-from src.execution import wait_for_tx_status
+from src.common.contracts import keeper_contract
+from src.common.execution import wait_for_tx_status
+from src.common.utils import aiohttp_fetch
 from src.metrics import metrics
-from src.typings import RewardVote, RewardVoteBody
+from src.rewards.typings import RewardVote, RewardVoteBody
 
 logger = logging.getLogger(__name__)
 

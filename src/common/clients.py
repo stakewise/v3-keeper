@@ -3,7 +3,7 @@ from sw_utils.ipfs import IpfsFetchClient
 from web3 import AsyncWeb3
 from web3.middleware.signing import async_construct_sign_and_send_raw_middleware
 
-from src.accounts import keeper_account
+from src.common.accounts import keeper_account
 from src.config import settings
 from src.config.settings import (
     MAX_FEE_PER_GAS_GWEI,

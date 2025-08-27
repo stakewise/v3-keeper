@@ -10,10 +10,10 @@ from web3 import Web3
 from web3.contract.async_contract import AsyncContractFunction
 from web3.types import EventData, TxParams
 
-from src.clients import execution_client, gas_manager
+from src.common.clients import execution_client, gas_manager
 from src.config.settings import ATTEMPTS_WITH_DEFAULT_GAS, NETWORK_CONFIG
 from src.distributor.typings import DistributorRewardVoteBody
-from src.typings import RewardVoteBody
+from src.rewards.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
 

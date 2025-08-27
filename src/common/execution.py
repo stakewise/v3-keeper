@@ -6,10 +6,10 @@ from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
 
-from src.accounts import keeper_account
-from src.clients import execution_client, ipfs_fetch_client
+from src.common.accounts import keeper_account
+from src.common.clients import execution_client, ipfs_fetch_client
+from src.common.contracts import keeper_contract
 from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
-from src.contracts import keeper_contract
 
 logger = logging.getLogger(__name__)
 

@@ -1,18 +1,11 @@
 import random
 
 from eth_typing import HexStr
-from sw_utils.tests.factories import faker
 from sw_utils.typings import Oracle
 from web3.types import Timestamp
 
-from src.typings import RewardVote, RewardVoteBody
-
-
-def create_oracle(num_endpoints: int = 1) -> Oracle:
-    return Oracle(
-        public_key=faker.ecies_public_key(),
-        endpoints=[f'https://example{i}.com' for i in range(num_endpoints)],
-    )
+from src.common.tests.factories import create_oracle
+from src.rewards.typings import RewardVote, RewardVoteBody
 
 
 def create_vote(

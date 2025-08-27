@@ -1,7 +1,7 @@
 from prometheus_client import Counter, Gauge, Info, start_http_server
 
 from src import _get_project_meta
-from src.accounts import keeper_account
+from src.common.accounts import keeper_account
 from src.config.settings import METRICS_HOST, METRICS_PORT
 
 

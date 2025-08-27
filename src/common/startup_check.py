@@ -5,16 +5,16 @@ from aiohttp import ClientSession, ClientTimeout
 from sw_utils import IpfsFetchClient
 from sw_utils.decorators import retry_aiohttp_errors
 
-from src.accounts import keeper_account
-from src.clients import get_consensus_client, get_execution_client
-from src.common import aiohttp_fetch
+from src.common.accounts import keeper_account
+from src.common.clients import get_consensus_client, get_execution_client
+from src.common.execution import check_keeper_balance, get_protocol_config
+from src.common.utils import aiohttp_fetch
 from src.config.settings import (
     CONSENSUS_ENDPOINTS,
     DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINTS,
     IPFS_FETCH_ENDPOINTS,
 )
-from src.execution import check_keeper_balance, get_protocol_config
 
 logger = logging.getLogger(__name__)
 

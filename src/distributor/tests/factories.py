@@ -6,7 +6,7 @@ from sw_utils.typings import Oracle
 from web3.types import Timestamp
 
 from src.distributor.typings import DistributorRewardVote, DistributorRewardVoteBody
-from src.tests.factories import create_oracle
+from src.rewards.tests.factories import create_oracle
 
 
 def create_distributor_reward_vote(
