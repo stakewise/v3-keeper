@@ -22,7 +22,7 @@ DISTRIBUTOR_REWARDS_VOTE_URL_PATH = '/distributor-rewards'
 async def process_distributor_rewards(protocol_config: ProtocolConfig) -> None:
     votes = await _fetch_distributor_reward_votes(protocol_config.oracles)
     if not votes:
-        logger.warning('No active votes')
+        logger.info('No active votes')
         return
 
     current_nonce = await merkle_distributor_contract.nonce()
@@ -85,6 +85,8 @@ async def _fetch_distributor_reward_votes(oracles: list[Oracle]) -> list[Distrib
 
     votes: list[DistributorRewardVote] = []
     for result in results:
+        if result is None:
+            continue
         if isinstance(result, Exception):
             logger.warning(result)
             continue
@@ -94,20 +96,24 @@ async def _fetch_distributor_reward_votes(oracles: list[Oracle]) -> list[Distrib
     return votes
 
 
-async def _fetch_vote_from_oracle(session: ClientSession, oracle: Oracle) -> DistributorRewardVote:
-    results: list[DistributorRewardVote | Exception] = await asyncio.gather(
+async def _fetch_vote_from_oracle(
+    session: ClientSession, oracle: Oracle
+) -> DistributorRewardVote | None:
+    results: list[DistributorRewardVote | Exception | None] = await asyncio.gather(
         *(_fetch_vote_from_endpoint(session, oracle, endpoint) for endpoint in oracle.endpoints),
         return_exceptions=True,
     )
     votes: list[DistributorRewardVote] = []
     for endpoint, result in zip(oracle.endpoints, results):
+        if result is None:
+            continue
         if isinstance(result, Exception):
             logger.warning('%r from %s', result, endpoint)
             continue
         votes.append(result)
 
     if not votes:
-        raise RuntimeError(f'All endpoints are unavailable for oracle {oracle.public_key}')
+        return None
 
     max_nonce = max(v.nonce for v in votes)
     votes = [v for v in votes if v.nonce == max_nonce]
@@ -117,13 +123,12 @@ async def _fetch_vote_from_oracle(session: ClientSession, oracle: Oracle) -> Dis
 
 async def _fetch_vote_from_endpoint(
     session: ClientSession, oracle: Oracle, endpoint: str
-) -> DistributorRewardVote:
+) -> DistributorRewardVote | None:
     url = urljoin(endpoint, DISTRIBUTOR_REWARDS_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
 
     if not data:
-        logger.warning('Empty response from oracle')
-        raise RuntimeError(f'Invalid response from endpoint {endpoint}')
+        return None
 
     for key in [
         'nonce',
@@ -132,9 +137,7 @@ async def _fetch_vote_from_endpoint(
         'ipfs_hash',
     ]:
         if key not in data.keys():
-            logger.warning(
-                'Invalid response from oracle'
-            )
+            logger.warning('Invalid response from oracle')
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
     vote = DistributorRewardVote(
