@@ -24,7 +24,7 @@ from src.metrics import metrics, metrics_server
 from src.rewards.service import RewardsCache, process_rewards
 
 logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
+    format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     level=LOG_LEVEL,
 )

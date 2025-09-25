@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from unittest import mock
 from unittest.mock import patch
 
-import pytest
 from eth_typing import HexStr
 from sw_utils.tests.factories import faker, get_mocked_protocol_config
 from sw_utils.typings import Oracle
@@ -210,16 +209,16 @@ class TestFetchVoteFromOracle:
 
         with mock.patch(
             'src.distributor.service.aiohttp_fetch', side_effect=asyncio.TimeoutError()
-        ), pytest.raises(RuntimeError):
-            await _fetch_vote_from_oracle(client_session, oracle)
+        ):
+            vote = await _fetch_vote_from_oracle(client_session, oracle)
+            assert vote is None
 
     async def test_all_endpoints_empty_vote(self, client_session):
         oracle = create_oracle(num_endpoints=3)
 
-        with mock.patch('src.distributor.service.aiohttp_fetch', side_effect={}), pytest.raises(
-            RuntimeError
-        ):
-            await _fetch_vote_from_oracle(client_session, oracle)
+        with mock.patch('src.distributor.service.aiohttp_fetch', side_effect={}):
+            vote = await _fetch_vote_from_oracle(client_session, oracle)
+            assert vote is None
 
     async def test_single_endpoint_available(self, client_session):
         oracle = create_oracle(num_endpoints=3)
