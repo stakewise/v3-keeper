@@ -14,13 +14,16 @@ from src.config.settings import (
     METRICS_PORT,
     NETWORK,
     NETWORK_CONFIG,
+    OSETH_PRICE_SUPPORTED_NETWORKS,
     SENTRY_DSN,
     SKIP_DISTRIBUTOR_REWARDS,
+    SKIP_OSETH_PRICE_UPDATE,
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
 from src.exits.service import process_exits
 from src.metrics import metrics, metrics_server
+from src.price.service import process_layer_two_oseth_price
 from src.rewards.service import RewardsCache, process_rewards
 
 logging.basicConfig(
@@ -68,12 +71,18 @@ async def main() -> None:
                         protocol_config=protocol_config,
                     ),
                 ]
+                # distributor
                 if not SKIP_DISTRIBUTOR_REWARDS:
                     tasks.append(
                         process_distributor_rewards(
                             protocol_config=protocol_config,
                         )
                     )
+
+                # update price
+                if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
+                    tasks.append(process_layer_two_oseth_price())
+
                 results = await asyncio.gather(
                     *tasks,
                     return_exceptions=True,

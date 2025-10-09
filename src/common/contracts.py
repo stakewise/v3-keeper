@@ -6,13 +6,18 @@ from typing import Dict
 
 from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from hexbytes import HexBytes
-from web3 import Web3
-from web3.contract.async_contract import AsyncContractFunction
+from web3 import AsyncWeb3, Web3
+from web3.contract.async_contract import AsyncContractFunction, AsyncContractFunctions
 from web3.types import EventData, TxParams
 
 from src.common.clients import execution_client, gas_manager
-from src.config.settings import ATTEMPTS_WITH_DEFAULT_GAS, NETWORK_CONFIG
+from src.config.settings import (
+    ATTEMPTS_WITH_DEFAULT_GAS,
+    NETWORK_CONFIG,
+    PRICE_NETWORK_CONFIG,
+)
 from src.distributor.typings import DistributorRewardVoteBody
+from src.price.clients import l2_execution_client
 from src.rewards.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -29,8 +34,13 @@ def _load_abi(abi_path: str) -> Dict:
 class ContractWrapper:
     abi_path: str
 
-    def __init__(self, address: ChecksumAddress):
-        self.contract = execution_client.eth.contract(address=address, abi=_load_abi(self.abi_path))
+    def __init__(self, address: ChecksumAddress, client: AsyncWeb3 | None = None) -> None:
+        client = client or execution_client
+        self.contract = client.eth.contract(address=address, abi=_load_abi(self.abi_path))
+
+    @property
+    def functions(self) -> AsyncContractFunctions:
+        return self.contract.functions
 
     async def _get_last_event(
         self,
@@ -65,7 +75,7 @@ class KeeperContract(ContractWrapper):
             ),
         )
 
-        tx_hash = await _transaction_gas_wrapper(tx_function=tx_function)
+        tx_hash = await transaction_gas_wrapper(tx_function=tx_function)
         return Web3.to_hex(tx_hash)
 
     async def get_rewards_nonce(self) -> int:
@@ -114,11 +124,34 @@ class MerkleDistributorContract(ContractWrapper):
             b''.join(Web3.to_bytes(hexstr=signature) for signature in signatures),
         )
 
-        tx_hash = await _transaction_gas_wrapper(tx_function=tx_function)
+        tx_hash = await transaction_gas_wrapper(tx_function=tx_function)
         return Web3.to_hex(tx_hash)
 
 
-async def _transaction_gas_wrapper(
+class PriceFeedContract(ContractWrapper):
+    abi_path = 'abi/IPriceFeed.json'
+
+
+class PriceFeedSenderContract(ContractWrapper):
+    abi_path = 'abi/IPriceFeedSender.json'
+
+
+target_price_feed_contract = PriceFeedContract(
+    address=PRICE_NETWORK_CONFIG.TARGET_PRICE_FEED_CONTRACT_ADDRESS,
+    client=l2_execution_client,
+)
+
+price_feed_sender_contract = PriceFeedSenderContract(
+    PRICE_NETWORK_CONFIG.PRICE_FEED_SENDER_CONTRACT_ADDRESS
+)
+
+merkle_distributor_contract = MerkleDistributorContract(
+    NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
+)
+keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
+
+
+async def transaction_gas_wrapper(
     tx_function: AsyncContractFunction, tx_params: TxParams | None = None
 ) -> HexBytes:
     """Handles periods with high gas in the network."""
@@ -143,9 +176,3 @@ async def _transaction_gas_wrapper(
     # use high priority fee
     tx_params = tx_params | await gas_manager.get_high_priority_tx_params()
     return await tx_function.transact(tx_params)
-
-
-merkle_distributor_contract = MerkleDistributorContract(
-    NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
-)
-keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
