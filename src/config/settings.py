@@ -27,7 +27,7 @@ SKIP_DISTRIBUTOR_REWARDS: bool = config('SKIP_DISTRIBUTOR_REWARDS', default=Fals
 SKIP_OSETH_PRICE_UPDATE: bool = config('SKIP_OSETH_PRICE_UPDATE', default=False, cast=bool)
 
 # Oseth price
-L2_EXECUTION_ENDPOINTS: list[str] = config('TARGET_EXECUTION_ENDPOINTS')
+L2_EXECUTION_ENDPOINTS: list[str] = config('L2_EXECUTION_ENDPOINTS', cast=Csv())
 PRICE_NETWORK_CONFIG = cast(PriceNetworkConfig, PRICE_NETWORKS[NETWORK])
 
 
