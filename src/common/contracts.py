@@ -8,7 +8,7 @@ from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from hexbytes import HexBytes
 from web3 import AsyncWeb3, Web3
 from web3.contract.async_contract import AsyncContractFunction, AsyncContractFunctions
-from web3.types import EventData, TxParams
+from web3.types import EventData, TxParams, Wei
 
 from src.common.clients import execution_client, gas_manager
 from src.config.settings import (
@@ -17,6 +17,7 @@ from src.config.settings import (
     PRICE_NETWORK_CONFIG,
 )
 from src.distributor.typings import DistributorRewardVoteBody
+from src.ltv.typings import HarvestParams
 from src.price.clients import l2_execution_client
 from src.rewards.typings import RewardVoteBody
 
@@ -41,6 +42,12 @@ class ContractWrapper:
     @property
     def functions(self) -> AsyncContractFunctions:
         return self.contract.functions
+
+    @staticmethod
+    def _get_zero_harvest_params() -> HarvestParams:
+        return HarvestParams(
+            rewards_root=HexBytes(b'\x00' * 32), reward=Wei(0), unlocked_mev_reward=Wei(0), proof=[]
+        )
 
     async def _get_last_event(
         self,
@@ -136,6 +143,50 @@ class PriceFeedSenderContract(ContractWrapper):
     abi_path = 'abi/IPriceFeedSender.json'
 
 
+class VaultUserLTVTrackerContract(ContractWrapper):
+    abi_path = 'abi/IVaultUserLtvTracker.json'
+
+    async def get_max_ltv_user(self, vault: ChecksumAddress) -> ChecksumAddress:
+        user = await self.contract.functions.vaultToUser(vault).call()
+        return Web3.to_checksum_address(user)
+
+    async def get_vault_max_ltv(
+        self, vault: ChecksumAddress, harvest_params: HarvestParams | None
+    ) -> int:
+        # Create zero harvest params in case the vault has no rewards yet
+        if harvest_params is None:
+            harvest_params = self._get_zero_harvest_params()
+
+        return await self.contract.functions.getVaultMaxLtv(
+            vault,
+            (
+                harvest_params.rewards_root,
+                harvest_params.reward,
+                harvest_params.unlocked_mev_reward,
+                harvest_params.proof,
+            ),
+        ).call()
+
+    async def update_vault_max_ltv_user(
+        self, vault: ChecksumAddress, user: ChecksumAddress, harvest_params: HarvestParams | None
+    ) -> HexBytes:
+        # Create zero harvest params in case the vault has no rewards yet
+        if harvest_params is None:
+            harvest_params = self._get_zero_harvest_params()
+
+        tx_function = self.contract.functions.updateVaultMaxLtvUser(
+            vault,
+            user,
+            (
+                harvest_params.rewards_root,
+                harvest_params.reward,
+                harvest_params.unlocked_mev_reward,
+                harvest_params.proof,
+            ),
+        )
+        return await transaction_gas_wrapper(tx_function=tx_function)
+
+
 target_price_feed_contract = PriceFeedContract(
     address=PRICE_NETWORK_CONFIG.TARGET_PRICE_FEED_CONTRACT_ADDRESS,
     client=l2_execution_client,
@@ -149,6 +200,11 @@ merkle_distributor_contract = MerkleDistributorContract(
     NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
 )
 keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
+
+
+vault_user_ltv_tracker_contract = VaultUserLTVTrackerContract(
+    address=NETWORK_CONFIG.VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS,
+)
 
 
 async def transaction_gas_wrapper(

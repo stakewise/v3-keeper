@@ -152,3 +152,9 @@ async def startup_checks() -> None:
         logger.info('Connected to oracles at %s', ', '.join(healthy_oracles))
     else:
         logger.warning("Can't connect to oracles set")
+
+
+# await wait_for_graph_node_sync_to_finalized_block(
+#     graph_client=graph_client,
+#     execution_client=execution_client,
+# )

@@ -15,6 +15,7 @@ ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, CHIADO, SEPOLIA]
 class NetworkConfig(BaseNetworkConfig):
     SYMBOL: str
     KEEPER_MIN_BALANCE: Wei
+    VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS: ChecksumAddress
 
 
 NETWORKS = {
@@ -22,21 +23,33 @@ NETWORKS = {
         **asdict(BASE_NETWORKS[MAINNET]),
         SYMBOL='ETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
+        ),
     ),
     HOODI: NetworkConfig(
         **asdict(BASE_NETWORKS[HOODI]),
         SYMBOL='HoodiETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xcF619F9Dd8eB483239de953251fd13cB0F977c6C'
+        ),
     ),
     GNOSIS: NetworkConfig(
         **asdict(BASE_NETWORKS[GNOSIS]),
         SYMBOL='xDAI',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
+        ),
     ),
     CHIADO: NetworkConfig(
         **asdict(BASE_NETWORKS[CHIADO]),
         SYMBOL='xDAI',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
+        ),
     ),
 }
 

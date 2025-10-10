@@ -29,10 +29,16 @@ SKIP_OSETH_PRICE_UPDATE: bool = config('SKIP_OSETH_PRICE_UPDATE', default=False,
 # Oseth price
 L2_EXECUTION_ENDPOINTS: list[str] = config('L2_EXECUTION_ENDPOINTS', cast=Csv())
 PRICE_NETWORK_CONFIG = cast(PriceNetworkConfig, PRICE_NETWORKS[NETWORK])
-
-
 OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
 
+# LTV
+SKIP_LTV_UPDATE: bool = config('SKIP_LTV_UPDATE', default=False, cast=bool)
+
+# graph
+GRAPH_API_URL: str = config('GRAPH_API_URL')
+GRAPH_API_TIMEOUT: int = config('GRAPH_API_TIMEOUT', default='10', cast=int)
+GRAPH_API_RETRY_TIMEOUT: int = config('GRAPH_API_RETRY_TIMEOUT', default='60', cast=int)
+GRAPH_PAGE_SIZE: int = config('GRAPH_PAGE_SIZE', default=100, cast=int)
 
 # common
 LOG_LEVEL: str = config('LOG_LEVEL', default='INFO')

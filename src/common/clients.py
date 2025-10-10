@@ -1,4 +1,5 @@
 from sw_utils import GasManager, get_consensus_client, get_execution_client
+from sw_utils.graph.client import GraphClient
 from sw_utils.ipfs import IpfsFetchClient
 from web3 import AsyncWeb3
 from web3.middleware.signing import async_construct_sign_and_send_raw_middleware
@@ -37,6 +38,14 @@ def build_gas_manager() -> GasManager:
         priority_fee_percentile=PRIORITY_FEE_PERCENTILE,
         min_effective_priority_fee_per_gas=min_effective_priority_fee_per_gas,
     )
+
+
+graph_client = GraphClient(
+    endpoint=settings.GRAPH_API_URL,
+    request_timeout=settings.GRAPH_API_TIMEOUT,
+    retry_timeout=settings.GRAPH_API_RETRY_TIMEOUT,
+    page_size=settings.GRAPH_PAGE_SIZE,
+)
 
 
 execution_client = build_execution_client()

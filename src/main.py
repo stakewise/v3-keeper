@@ -17,11 +17,13 @@ from src.config.settings import (
     OSETH_PRICE_SUPPORTED_NETWORKS,
     SENTRY_DSN,
     SKIP_DISTRIBUTOR_REWARDS,
+    SKIP_LTV_UPDATE,
     SKIP_OSETH_PRICE_UPDATE,
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
 from src.exits.service import process_exits
+from src.ltv.service import process_vault_max_ltv_user
 from src.metrics import metrics, metrics_server
 from src.price.service import process_layer_two_oseth_price
 from src.rewards.service import RewardsCache, process_rewards
@@ -71,6 +73,7 @@ async def main() -> None:
                         protocol_config=protocol_config,
                     ),
                 ]
+
                 # distributor
                 if not SKIP_DISTRIBUTOR_REWARDS:
                     tasks.append(
@@ -82,6 +85,10 @@ async def main() -> None:
                 # update price
                 if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
                     tasks.append(process_layer_two_oseth_price())
+
+                # update LTV
+                if not SKIP_LTV_UPDATE:
+                    tasks.append(process_vault_max_ltv_user())
 
                 results = await asyncio.gather(
                     *tasks,
