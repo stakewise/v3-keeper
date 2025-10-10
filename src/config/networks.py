@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 
+from ens.constants import EMPTY_ADDR_HEX
 from sw_utils.networks import CHIADO, GNOSIS, HOODI, MAINNET
 from sw_utils.networks import NETWORKS as BASE_NETWORKS
 from sw_utils.networks import BaseNetworkConfig
@@ -10,12 +11,17 @@ SEPOLIA = 'sepolia'
 
 ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, CHIADO, SEPOLIA]
 
+ZERO_CHECKSUM_ADDRESS = Web3.to_checksum_address(EMPTY_ADDR_HEX)  # noqa
+
 
 @dataclass
 class NetworkConfig(BaseNetworkConfig):
     SYMBOL: str
     KEEPER_MIN_BALANCE: Wei
     VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS: ChecksumAddress
+    STRATEGY_REGISTRY_CONTRACT_ADDRESS: ChecksumAddress
+    OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS: ChecksumAddress
+    LEVERAGE_STRATEGY_ID: str
 
 
 NETWORKS = {
@@ -26,6 +32,13 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
         ),
+        LEVERAGE_STRATEGY_ID='0x8b74cefe9f33d72ccd3521e6d331272921607e547c75c914c2c56cfdad9defed',
+        STRATEGY_REGISTRY_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x90b82E4b3aa385B4A02B7EBc1892a4BeD6B5c465'
+        ),
+        OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x09e84205DF7c68907e619D07aFD90143c5763605'
+        ),
     ),
     HOODI: NetworkConfig(
         **asdict(BASE_NETWORKS[HOODI]),
@@ -33,6 +46,13 @@ NETWORKS = {
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xcF619F9Dd8eB483239de953251fd13cB0F977c6C'
+        ),
+        LEVERAGE_STRATEGY_ID='0x8b74cefe9f33d72ccd3521e6d331272921607e547c75c914c2c56cfdad9defed',
+        STRATEGY_REGISTRY_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x6A2911F94da08Da01158d645Bf85152b338E015D'
+        ),
+        OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xdC1347cC04d4a8945b98A09C3c5585286bbA5C2B'
         ),
     ),
     GNOSIS: NetworkConfig(
@@ -42,6 +62,11 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
         ),
+        LEVERAGE_STRATEGY_ID='',
+        STRATEGY_REGISTRY_CONTRACT_ADDRESS=ZERO_CHECKSUM_ADDRESS,
+        OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x28F325dD287a5984B754d34CfCA38af3A8429e71'
+        ),
     ),
     CHIADO: NetworkConfig(
         **asdict(BASE_NETWORKS[CHIADO]),
@@ -49,6 +74,11 @@ NETWORKS = {
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
+        ),
+        LEVERAGE_STRATEGY_ID='',
+        STRATEGY_REGISTRY_CONTRACT_ADDRESS=ZERO_CHECKSUM_ADDRESS,
+        OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0x00aa8A78d88a9865b5b0F4ce50c3bB018c93FBa7'
         ),
     ),
 }

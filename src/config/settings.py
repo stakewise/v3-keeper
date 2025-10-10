@@ -34,6 +34,10 @@ OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
 # LTV
 SKIP_LTV_UPDATE: bool = config('SKIP_LTV_UPDATE', default=False, cast=bool)
 
+# FORCE EXIT
+SKIP_FORCE_EXITS: bool = config('SKIP_FORCE_EXITS', default=False, cast=bool)
+LTV_PERCENT_DELTA: float = config('LTV_PERCENT_DELTA', default='0.0002', cast=float)
+
 # graph
 GRAPH_API_URL: str = config('GRAPH_API_URL')
 GRAPH_API_TIMEOUT: int = config('GRAPH_API_TIMEOUT', default='10', cast=int)

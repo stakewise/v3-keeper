@@ -1,7 +1,7 @@
 from sw_utils import GasManager, get_consensus_client, get_execution_client
 from sw_utils.graph.client import GraphClient
 from sw_utils.ipfs import IpfsFetchClient
-from web3 import AsyncWeb3
+from web3 import AsyncWeb3, Web3
 from web3.middleware.signing import async_construct_sign_and_send_raw_middleware
 
 from src.common.accounts import keeper_account
@@ -33,7 +33,7 @@ def build_gas_manager() -> GasManager:
     min_effective_priority_fee_per_gas = settings.NETWORK_CONFIG.MIN_EFFECTIVE_PRIORITY_FEE_PER_GAS
     return GasManager(
         execution_client=execution_client,
-        max_fee_per_gas_gwei=MAX_FEE_PER_GAS_GWEI,
+        max_fee_per_gas=Web3.to_wei(MAX_FEE_PER_GAS_GWEI, 'gwei'),
         priority_fee_num_blocks=PRIORITY_FEE_NUM_BLOCKS,
         priority_fee_percentile=PRIORITY_FEE_PERCENTILE,
         min_effective_priority_fee_per_gas=min_effective_priority_fee_per_gas,

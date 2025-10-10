@@ -17,12 +17,14 @@ from src.config.settings import (
     OSETH_PRICE_SUPPORTED_NETWORKS,
     SENTRY_DSN,
     SKIP_DISTRIBUTOR_REWARDS,
+    SKIP_FORCE_EXITS,
     SKIP_LTV_UPDATE,
     SKIP_OSETH_PRICE_UPDATE,
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
 from src.exits.service import process_exits
+from src.force_exit.service import process_force_exits
 from src.ltv.service import process_vault_max_ltv_user
 from src.metrics import metrics, metrics_server
 from src.price.service import process_layer_two_oseth_price
@@ -89,6 +91,10 @@ async def main() -> None:
                 # update LTV
                 if not SKIP_LTV_UPDATE:
                     tasks.append(process_vault_max_ltv_user())
+
+                # force position exits
+                if not SKIP_FORCE_EXITS:
+                    tasks.append(process_force_exits())
 
                 results = await asyncio.gather(
                     *tasks,
