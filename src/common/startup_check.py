@@ -14,6 +14,8 @@ from src.config.settings import (
     DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINTS,
     IPFS_FETCH_ENDPOINTS,
+    L2_EXECUTION_ENDPOINTS,
+    SKIP_OSETH_PRICE_UPDATE,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,6 +78,16 @@ async def startup_checks() -> None:
             logger.warning('Failed to connect to execution nodes. Retrying in 10 seconds...')
             await asyncio.sleep(10)
 
+    async def _check_l2_execution_nodes() -> None:
+        while True:
+            nodes_ready = [
+                await _check_execution_node(endpoint) for endpoint in L2_EXECUTION_ENDPOINTS
+            ]
+            if any(nodes_ready):
+                return
+            logger.warning('Failed to connect to l2 execution nodes. Retrying in 10 seconds...')
+            await asyncio.sleep(10)
+
     async def _check_execution_node(execution_endpoint: str) -> bool:
         try:
             execution_client = get_execution_client([execution_endpoint])
@@ -111,6 +123,9 @@ async def startup_checks() -> None:
             return False
 
     await _check_execution_nodes()
+
+    if not SKIP_OSETH_PRICE_UPDATE:
+        await _check_l2_execution_nodes()
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes() -> None:
