@@ -27,8 +27,15 @@ SKIP_DISTRIBUTOR_REWARDS: bool = config('SKIP_DISTRIBUTOR_REWARDS', default=Fals
 SKIP_OSETH_PRICE_UPDATE: bool = config('SKIP_OSETH_PRICE_UPDATE', default=False, cast=bool)
 
 # Oseth price
-L2_EXECUTION_ENDPOINTS: list[str] = config('L2_EXECUTION_ENDPOINTS', cast=Csv())
+L2_EXECUTION_ENDPOINTS: list[str] = config('L2_EXECUTION_ENDPOINTS', default='', cast=Csv())
 PRICE_NETWORK_CONFIG = cast(PriceNetworkConfig, PRICE_NETWORKS[NETWORK])
+
+# How long to wait since the last update before we can run another update
+PRICE_UPDATE_INTERVAL: int = config('PRICE_UPDATE_INTERVAL', default=12 * 60 * 60, cast=int)
+
+# How long to wait for update on the target chain
+PRICE_MAX_WAITING_TIME: int = config('PRICE_MAX_WAITING_TIME', default=3600, cast=int)
+
 OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
 
 # LTV

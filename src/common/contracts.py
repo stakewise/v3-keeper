@@ -255,6 +255,22 @@ merkle_distributor_contract = MerkleDistributorContract(
     NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
 )
 keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
+merkle_distributor_contract = MerkleDistributorContract(
+    NETWORK_CONFIG.MERKLE_DISTRIBUTOR_CONTRACT_ADDRESS
+)
+keeper_contract = KeeperContract(NETWORK_CONFIG.KEEPER_CONTRACT_ADDRESS)
+
+if PRICE_NETWORK_CONFIG is not None:
+    target_price_feed_contract = PriceFeedContract(
+        address=PRICE_NETWORK_CONFIG.TARGET_PRICE_FEED_CONTRACT_ADDRESS,
+        client=l2_execution_client,
+    )
+    price_feed_sender_contract = PriceFeedSenderContract(
+        PRICE_NETWORK_CONFIG.PRICE_FEED_SENDER_CONTRACT_ADDRESS
+    )
+else:
+    target_price_feed_contract = None
+    price_feed_sender_contract = None
 
 multicall_contract = MulticallContract(
     address=NETWORK_CONFIG.MULTICALL_CONTRACT_ADDRESS,
