@@ -1,6 +1,5 @@
 import logging
 import time
-from datetime import timedelta
 
 from web3.types import TxParams
 
@@ -11,48 +10,44 @@ from src.common.contracts import (
     target_price_feed_contract,
     transaction_gas_wrapper,
 )
-from src.config.settings import PRICE_NETWORK_CONFIG
+from src.config.settings import (
+    PRICE_MAX_WAITING_TIME,
+    PRICE_NETWORK_CONFIG,
+    PRICE_UPDATE_INTERVAL,
+)
 
 logger = logging.getLogger(__name__)
-
-# How long to wait since the last update before we can run another update
-UPDATE_INTERVAL = timedelta(hours=1)
-
-# How long to wait for update on the target chain
-MAX_WAITING_TIME = timedelta(hours=1)
 
 
 async def process_layer_two_oseth_price() -> None:
     """
-    Update osEth price in the Arbitrum chain. Price fethched from the Ethereum chain.
-    Also, available on Sepolia network for testing
+    Update osEth price on Arbitrum chain using Ethereum data.
+    Аvailable on Sepolia network for testing.
     """
     # Step 1: Check latest timestamp
     latest_timestamp = await target_price_feed_contract.functions.latestTimestamp().call()
     current_time = int(time.time())
-    update_interval_sec = UPDATE_INTERVAL.total_seconds()
 
-    if current_time - latest_timestamp < update_interval_sec:
+    if current_time - latest_timestamp < PRICE_UPDATE_INTERVAL:
         logger.info(
             'Less than %d hours since the last update. No action needed.',
-            update_interval_sec // 3600,
+            PRICE_UPDATE_INTERVAL // 3600,
         )
         return
 
     # Step 2: check if transaction is already in progress
     app_state = AppState()
     now = int(time.time())
-    max_waiting_time_sec = int(MAX_WAITING_TIME.total_seconds())
     if app_state.last_price_updated_timestamp:
         new_timestamp = await target_price_feed_contract.functions.latestTimestamp().call()
         if new_timestamp > app_state.last_price_updated_timestamp:
             logger.info('Timestamp updated on the target chain.')
             return
-        if app_state.last_price_updated_timestamp + max_waiting_time_sec > now:
+        if app_state.last_price_updated_timestamp + PRICE_MAX_WAITING_TIME > now:
             logger.info('Waiting for the timestamp to update...')
             return
         raise TimeoutError(
-            f'Timestamp did not update on the target chain within {max_waiting_time_sec} sec.'
+            f'Timestamp did not update on the target chain within {PRICE_MAX_WAITING_TIME} sec.'
         )
 
     # Step 3: Get the cost
