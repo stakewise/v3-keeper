@@ -177,7 +177,7 @@ async def _fetch_vote_from_endpoint(
     data = await aiohttp_fetch(session, url)
 
     if not data:
-        logger.warning('Empty response from oracle', extra={'endpoint': endpoint, 'response': data})
+        logger.warning('Empty response from oracle')
         raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
     for key in [
@@ -189,9 +189,7 @@ async def _fetch_vote_from_endpoint(
         'avg_reward_per_second',
     ]:
         if key not in data.keys():
-            logger.warning(
-                'Invalid response from oracle', extra={'endpoint': endpoint, 'response': data}
-            )
+            logger.warning('Invalid response from oracle')
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
     metrics.oracle_avg_rewards_per_second.labels(oracle_address=endpoint).set(
