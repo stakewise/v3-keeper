@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 async def process_layer_two_oseth_price() -> None:
     """
     Update osEth price on Arbitrum chain using Ethereum data.
-    Аvailable on Sepolia network for testing.
+    Available on Sepolia network for testing.
     """
     # Step 1: Check latest timestamp
     latest_timestamp = await target_price_feed_contract.functions.latestTimestamp().call()
@@ -73,4 +73,4 @@ async def process_layer_two_oseth_price() -> None:
         raise RuntimeError(f'Sync transaction failed, tx hash: {tx.hex()}')
 
     logger.info('Sync transaction confirmed.')
-    app_state.last_price_updated_timestamp = latest_timestamp
+    app_state.last_price_updated_timestamp = int(time.time())

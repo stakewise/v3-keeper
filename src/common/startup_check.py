@@ -15,6 +15,8 @@ from src.config.settings import (
     EXECUTION_ENDPOINTS,
     IPFS_FETCH_ENDPOINTS,
     L2_EXECUTION_ENDPOINTS,
+    NETWORK,
+    OSETH_PRICE_SUPPORTED_NETWORKS,
     SKIP_OSETH_PRICE_UPDATE,
 )
 
@@ -124,7 +126,7 @@ async def startup_checks() -> None:
 
     await _check_execution_nodes()
 
-    if not SKIP_OSETH_PRICE_UPDATE:
+    if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
         await _check_l2_execution_nodes()
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
