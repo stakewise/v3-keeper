@@ -29,7 +29,7 @@ async def process_layer_two_oseth_price() -> None:
     current_time = int(time.time())
 
     if current_time - latest_timestamp < PRICE_UPDATE_INTERVAL:
-        logger.info(
+        logger.debug(
             'Less than %d hours since the last update. No action needed.',
             PRICE_UPDATE_INTERVAL // 3600,
         )
@@ -37,17 +37,19 @@ async def process_layer_two_oseth_price() -> None:
 
     # Step 2: check if transaction is already in progress
     app_state = AppState()
-    now = int(time.time())
     if app_state.last_price_updated_timestamp:
-        new_timestamp = await target_price_feed_contract.functions.latestTimestamp().call()
-        if new_timestamp > app_state.last_price_updated_timestamp:
-            logger.info('Timestamp updated on the target chain.')
-            return
-        if app_state.last_price_updated_timestamp + PRICE_MAX_WAITING_TIME > now:
+        if app_state.last_price_updated_timestamp + PRICE_MAX_WAITING_TIME > current_time:
             logger.info('Waiting for the timestamp to update...')
             return
-        raise TimeoutError(
-            f'Timestamp did not update on the target chain within {PRICE_MAX_WAITING_TIME} sec.'
+
+        if latest_timestamp > app_state.last_price_updated_timestamp:
+            app_state.last_price_updated_timestamp = None
+            logger.info('Timestamp updated on the target chain.')
+            return
+
+        app_state.last_price_updated_timestamp = None
+        logger.error(
+            'Timestamp did not update on the target chain within %s sec.', PRICE_MAX_WAITING_TIME
         )
 
     # Step 3: Get the cost
