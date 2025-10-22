@@ -4,6 +4,7 @@ from decouple import Choices, Csv, config
 
 from src.config.networks import (
     ENABLED_NETWORKS,
+    HOODI,
     MAINNET,
     NETWORKS,
     PRICE_NETWORKS,
@@ -38,6 +39,17 @@ PRICE_MAX_WAITING_TIME: int = config('PRICE_MAX_WAITING_TIME', default=3600, cas
 
 OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
 
+# FORCE EXIT
+SKIP_FORCE_EXITS: bool = config('SKIP_FORCE_EXITS', default=False, cast=bool)
+FORCE_EXITS_SUPPORTED_NETWORKS = [MAINNET, HOODI]
+
+LTV_PERCENT_DELTA: float = config('LTV_PERCENT_DELTA', default='0.0002', cast=float)
+
+# graph
+GRAPH_API_URL: str = config('GRAPH_API_URL')
+GRAPH_API_TIMEOUT: int = config('GRAPH_API_TIMEOUT', default='10', cast=int)
+GRAPH_API_RETRY_TIMEOUT: int = config('GRAPH_API_RETRY_TIMEOUT', default='60', cast=int)
+GRAPH_PAGE_SIZE: int = config('GRAPH_PAGE_SIZE', default=100, cast=int)
 
 # common
 LOG_LEVEL: str = config('LOG_LEVEL', default='INFO')

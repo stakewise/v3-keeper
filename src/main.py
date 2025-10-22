@@ -9,6 +9,7 @@ from src.common.clients import execution_client, setup_execution_client
 from src.common.execution import get_keeper_balance, get_protocol_config
 from src.common.startup_check import startup_checks
 from src.config.settings import (
+    FORCE_EXITS_SUPPORTED_NETWORKS,
     LOG_LEVEL,
     METRICS_HOST,
     METRICS_PORT,
@@ -17,11 +18,13 @@ from src.config.settings import (
     OSETH_PRICE_SUPPORTED_NETWORKS,
     SENTRY_DSN,
     SKIP_DISTRIBUTOR_REWARDS,
+    SKIP_FORCE_EXITS,
     SKIP_OSETH_PRICE_UPDATE,
     WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
 from src.exits.service import process_exits
+from src.force_exit.service import process_force_exits
 from src.metrics import metrics, metrics_server
 from src.price.service import process_layer_two_oseth_price
 from src.rewards.service import RewardsCache, process_rewards
@@ -71,6 +74,7 @@ async def main() -> None:
                         protocol_config=protocol_config,
                     ),
                 ]
+
                 # distributor
                 if not SKIP_DISTRIBUTOR_REWARDS:
                     tasks.append(
@@ -82,6 +86,10 @@ async def main() -> None:
                 # update price
                 if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
                     tasks.append(process_layer_two_oseth_price())
+
+                # force position exits
+                if NETWORK in FORCE_EXITS_SUPPORTED_NETWORKS and not SKIP_FORCE_EXITS:
+                    tasks.append(process_force_exits())
 
                 results = await asyncio.gather(
                     *tasks,
