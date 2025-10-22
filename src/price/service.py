@@ -42,15 +42,12 @@ async def process_layer_two_oseth_price() -> None:
             logger.info('Waiting for the timestamp to update...')
             return
 
-        if latest_timestamp > app_state.last_price_updated_timestamp:
-            app_state.last_price_updated_timestamp = None
-            logger.info('Timestamp updated on the target chain.')
-            return
-
+        if latest_timestamp < app_state.last_price_updated_timestamp:
+            logger.error(
+                'Timestamp did not update on the target chain within %s sec.',
+                PRICE_MAX_WAITING_TIME,
+            )
         app_state.last_price_updated_timestamp = None
-        logger.error(
-            'Timestamp did not update on the target chain within %s sec.', PRICE_MAX_WAITING_TIME
-        )
 
     # Step 3: Get the cost
     target_chain = PRICE_NETWORK_CONFIG.TARGET_CHAIN
