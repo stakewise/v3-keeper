@@ -17,6 +17,8 @@ from src.config.settings import (
     L2_EXECUTION_ENDPOINTS,
     NETWORK,
     OSETH_PRICE_SUPPORTED_NETWORKS,
+    PRICE_MAX_WAITING_TIME,
+    PRICE_UPDATE_INTERVAL,
     SKIP_OSETH_PRICE_UPDATE,
 )
 
@@ -128,6 +130,11 @@ async def startup_checks() -> None:
 
     if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
         await _check_l2_execution_nodes()
+        if PRICE_MAX_WAITING_TIME < PRICE_UPDATE_INTERVAL:
+            raise ValueError(
+                f'PRICE_MAX_WAITING_TIME ({PRICE_MAX_WAITING_TIME}) should be greater than '
+                f'PRICE_UPDATE_INTERVAL ({PRICE_UPDATE_INTERVAL})'
+            )
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes() -> None:
@@ -154,7 +161,7 @@ async def startup_checks() -> None:
     async with ClientSession(timeout=ClientTimeout(60)) as session:
         results = await asyncio.gather(
             *[aiohttp_fetch(session=session, url=endpoint) for endpoint in oracle_endpoints],
-            return_exceptions=True
+            return_exceptions=True,
         )
 
     healthy_oracles: list[str] = []
