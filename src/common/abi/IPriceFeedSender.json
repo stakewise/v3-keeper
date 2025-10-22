@@ -1,0 +1,39 @@
+[
+  {
+    "type": "function",
+    "name": "quoteRateSync",
+    "inputs": [
+      {
+        "name": "targetChain",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "cost",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "syncRate",
+    "inputs": [
+      {
+        "name": "targetChain",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "targetAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  }
+]

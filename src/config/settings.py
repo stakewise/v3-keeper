@@ -1,6 +1,20 @@
+from typing import cast
+
 from decouple import Choices, Csv, config
 
-from src.config.networks import ENABLED_NETWORKS, NETWORKS, NetworkConfig
+from src.config.networks import (
+    ENABLED_NETWORKS,
+    MAINNET,
+    NETWORKS,
+    PRICE_NETWORKS,
+    SEPOLIA,
+    NetworkConfig,
+    PriceNetworkConfig,
+)
+
+# network
+NETWORK: str = config('NETWORK', cast=Choices(ENABLED_NETWORKS))
+NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 
 # connections
 EXECUTION_ENDPOINTS: list[str] = config('EXECUTION_ENDPOINTS', cast=Csv())
@@ -8,15 +22,27 @@ CONSENSUS_ENDPOINTS: list[str] = config('CONSENSUS_ENDPOINTS', cast=Csv())
 
 # keeper
 PRIVATE_KEY: str = config('PRIVATE_KEY')
+
 SKIP_DISTRIBUTOR_REWARDS: bool = config('SKIP_DISTRIBUTOR_REWARDS', default=False, cast=bool)
+SKIP_OSETH_PRICE_UPDATE: bool = config('SKIP_OSETH_PRICE_UPDATE', default=False, cast=bool)
+
+# Oseth price
+L2_EXECUTION_ENDPOINTS: list[str] = config('L2_EXECUTION_ENDPOINTS', default='', cast=Csv())
+PRICE_NETWORK_CONFIG = cast(PriceNetworkConfig, PRICE_NETWORKS[NETWORK])
+
+# How long to wait since the last update before we can run another update
+PRICE_UPDATE_INTERVAL: int = config('PRICE_UPDATE_INTERVAL', default=12 * 60 * 60, cast=int)
+
+# How long to wait for update on the target chain
+PRICE_MAX_WAITING_TIME: int = config('PRICE_MAX_WAITING_TIME', default=3600, cast=int)
+
+OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
+
 
 # common
 LOG_LEVEL: str = config('LOG_LEVEL', default='INFO')
 WEB3_LOG_LEVEL: str = config('WEB3_LOG_LEVEL', default='INFO')
 
-# network
-NETWORK: str = config('NETWORK', cast=Choices(ENABLED_NETWORKS))
-NETWORK_CONFIG: NetworkConfig = NETWORKS[NETWORK]
 
 # IPFS fetch
 IPFS_FETCH_ENDPOINTS = config(
