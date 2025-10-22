@@ -130,9 +130,9 @@ async def startup_checks() -> None:
 
     if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
         await _check_l2_execution_nodes()
-        if PRICE_MAX_WAITING_TIME < PRICE_UPDATE_INTERVAL:
+        if PRICE_MAX_WAITING_TIME >= PRICE_UPDATE_INTERVAL:
             raise ValueError(
-                f'PRICE_MAX_WAITING_TIME ({PRICE_MAX_WAITING_TIME}) should be greater than '
+                f'PRICE_MAX_WAITING_TIME ({PRICE_MAX_WAITING_TIME}) should be less than '
                 f'PRICE_UPDATE_INTERVAL ({PRICE_UPDATE_INTERVAL})'
             )
 
