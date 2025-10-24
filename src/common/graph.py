@@ -13,7 +13,7 @@ async def check_for_graph_node_sync_to_block(
     block_identifier: BlockIdentifier,
 ) -> None:
     """
-    Waits until graph node is available and synced to the specified block number of execution node.
+    Check if graph node is available and synced to the specified block number of execution node.
     Useful for checking against latest block.
     """
     try:
