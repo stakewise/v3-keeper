@@ -1,7 +1,9 @@
 import logging
+import time
 
 from web3.types import BlockNumber
 
+from src.common.app_state import AppState
 from src.common.clients import execution_client, graph_client
 from src.common.contracts import (
     get_leverage_strategy_contract,
@@ -10,7 +12,11 @@ from src.common.contracts import (
 )
 from src.common.graph import graph_get_vaults, wait_for_graph_node_sync_to_block
 from src.common.typings import HarvestParams
-from src.config.settings import LTV_PERCENT_DELTA, NETWORK_CONFIG
+from src.config.settings import (
+    FORCE_EXITS_UPDATE_INTERVAL,
+    LTV_PERCENT_DELTA,
+    NETWORK_CONFIG,
+)
 
 from .execution import (
     can_force_enter_exit_queue,
@@ -35,6 +41,15 @@ async def process_force_exits() -> None:
     Monitor leverage positions and trigger exits/claims for those
     that approach the liquidation threshold.
     """
+    current_time = int(time.time())
+    app_state = AppState()
+
+    if (
+        app_state.force_exits_updated_timestamp
+        and app_state.force_exits_updated_timestamp + FORCE_EXITS_UPDATE_INTERVAL > current_time
+    ):
+        return
+
     block = await execution_client.eth.get_block('latest')
     logger.debug('Current block: %d', block['number'])
     block_number = block['number']
@@ -45,6 +60,8 @@ async def process_force_exits() -> None:
     )
     await handle_leverage_positions(block_number)
     await handle_ostoken_exit_requests(block_number)
+
+    app_state.force_exits_updated_timestamp = current_time
 
 
 async def handle_leverage_positions(block_number: BlockNumber) -> None:
@@ -123,10 +140,7 @@ async def fetch_leverage_positions(block_number: BlockNumber) -> list[LeveragePo
     all_leverage_positions = await graph_get_leverage_positions(block_number=block_number)
 
     # Get aave positions by borrow ltv
-    aave_positions = [pos for pos in all_leverage_positions if pos.borrow_ltv > borrow_ltv]
-    if not aave_positions:
-        logger.info('No risky Aave leverage positions found')
-        return []
+    borrow_positions = [pos for pos in all_leverage_positions if pos.borrow_ltv > borrow_ltv]
 
     # Get vault positions by vault ltv
     proxy_to_position = {position.proxy: position for position in all_leverage_positions}
@@ -139,8 +153,8 @@ async def fetch_leverage_positions(block_number: BlockNumber) -> list[LeveragePo
 
     # join positions
     leverage_positions = []
-    leverage_positions.extend(aave_positions)
-    borrow_ltv_positions_ids = set(pos.id for pos in aave_positions)
+    leverage_positions.extend(borrow_positions)
+    borrow_ltv_positions_ids = set(pos.id for pos in borrow_positions)
     for position in vault_positions:
         if position.id not in borrow_ltv_positions_ids:
             leverage_positions.append(position)
