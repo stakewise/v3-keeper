@@ -8,17 +8,20 @@ from sw_utils.decorators import retry_aiohttp_errors
 from src.common.accounts import keeper_account
 from src.common.clients import get_consensus_client, get_execution_client
 from src.common.execution import check_keeper_balance, get_protocol_config
+from src.common.graph import check_for_graph_node_sync_to_block
 from src.common.utils import aiohttp_fetch
 from src.config.settings import (
     CONSENSUS_ENDPOINTS,
     DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINTS,
+    FORCE_EXITS_SUPPORTED_NETWORKS,
     IPFS_FETCH_ENDPOINTS,
     L2_EXECUTION_ENDPOINTS,
     NETWORK,
     OSETH_PRICE_SUPPORTED_NETWORKS,
     PRICE_MAX_WAITING_TIME,
     PRICE_UPDATE_INTERVAL,
+    SKIP_FORCE_EXITS,
     SKIP_OSETH_PRICE_UPDATE,
 )
 
@@ -135,6 +138,8 @@ async def startup_checks() -> None:
                 f'PRICE_MAX_WAITING_TIME ({PRICE_MAX_WAITING_TIME}) should be less than '
                 f'PRICE_UPDATE_INTERVAL ({PRICE_UPDATE_INTERVAL})'
             )
+    if _is_graph_used():
+        await check_for_graph_node_sync_to_block('finalized')
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes() -> None:
@@ -176,3 +181,9 @@ async def startup_checks() -> None:
         logger.info('Connected to oracles at %s', ', '.join(healthy_oracles))
     else:
         logger.warning("Can't connect to oracles set")
+
+
+def _is_graph_used() -> bool:
+    if NETWORK in FORCE_EXITS_SUPPORTED_NETWORKS and not SKIP_FORCE_EXITS:
+        return True
+    return False

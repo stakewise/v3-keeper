@@ -1,34 +1,46 @@
-import asyncio
 import logging
-from typing import cast
 
 from eth_typing import BlockIdentifier, BlockNumber, ChecksumAddress
 from gql import gql
-from sw_utils.graph.client import GraphClient
-from web3 import AsyncWeb3
 
+from src.common.clients import execution_client, graph_client
 from src.common.typings import Vault
 
 logger = logging.getLogger(__name__)
 
 
-async def wait_for_graph_node_sync_to_block(
-    graph_client: GraphClient, block_number: BlockNumber
+async def check_for_graph_node_sync_to_block(
+    block_identifier: BlockIdentifier,
 ) -> None:
     """
     Waits until graph node is available and synced to the specified block number of execution node.
     Useful for checking against latest block.
     """
-    await _wait_for_graph_node_sync(
-        graph_client=graph_client,
-        execution_client=None,
-        block_identifier=block_number,
-        sleep_interval=3,
+    try:
+        graph_block_number = await graph_get_latest_block()
+    except Exception as e:
+        raise ConnectionError(
+            f'The graph node located at {graph_client.endpoint} ' f'is not available: {str(e)}',
+        ) from e
+
+    if isinstance(block_identifier, int):
+        # Fixed block number
+        execution_block_number = block_identifier
+    else:
+        # Example: block_identifier = 'finalized'
+        # Block number is changing on each iteration,
+        # so we need to fetch it from execution client
+        execution_block_number = (await execution_client.eth.get_block(block_identifier))['number']
+
+    if graph_block_number >= execution_block_number:
+        return
+    raise ConnectionError(
+        f'The graph node located at {graph_client.endpoint} '
+        f'is not synced to block: {execution_block_number}',
     )
 
 
 async def graph_get_vaults(
-    graph_client: GraphClient,
     vaults: list[ChecksumAddress] | None = None,
     is_meta_vault: bool | None = None,
 ) -> dict[ChecksumAddress, Vault]:
@@ -87,7 +99,7 @@ async def graph_get_vaults(
     return graph_vaults_map
 
 
-async def graph_get_latest_block(graph_client: GraphClient) -> BlockNumber:
+async def graph_get_latest_block() -> BlockNumber:
     """
     Returns the last synced block number of the graph node.
     """
@@ -105,48 +117,3 @@ async def graph_get_latest_block(graph_client: GraphClient) -> BlockNumber:
     response = await graph_client.run_query(query)
     graph_block_number = response['_meta']['block']['number']
     return BlockNumber(graph_block_number)
-
-
-async def _wait_for_graph_node_sync(
-    graph_client: GraphClient,
-    execution_client: AsyncWeb3 | None,
-    block_identifier: BlockIdentifier,
-    sleep_interval: int,
-) -> None:
-    """
-    Waits until graph node is available and synced to the specified block of execution node.
-    """
-
-    while True:
-        try:
-            graph_block_number = await graph_get_latest_block(graph_client)
-        except Exception as e:
-            logger.warning(
-                'The graph node located at %s is not available: %s',
-                graph_client.endpoint,
-                str(e),
-            )
-            await asyncio.sleep(sleep_interval)
-            continue
-
-        if isinstance(block_identifier, int):
-            # Fixed block number
-            execution_block_number = block_identifier
-        else:
-            # Example: block_identifier = 'finalized'
-            # Block number is changing on each iteration,
-            # so we need to fetch it from execution client
-            execution_client = cast(AsyncWeb3, execution_client)
-            execution_block_number = (await execution_client.eth.get_block(block_identifier))[
-                'number'
-            ]
-
-        if graph_block_number >= execution_block_number:
-            return
-
-        logger.warning(
-            'Waiting for the graph node located at %s to sync up to block %d.',
-            graph_client.endpoint,
-            execution_block_number,
-        )
-        await asyncio.sleep(sleep_interval)

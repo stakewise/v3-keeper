@@ -4,13 +4,13 @@ import time
 from web3.types import BlockNumber
 
 from src.common.app_state import AppState
-from src.common.clients import execution_client, graph_client
+from src.common.clients import execution_client
 from src.common.contracts import (
     get_leverage_strategy_contract,
     ostoken_vault_escrow_contract,
     strategy_registry_contract,
 )
-from src.common.graph import graph_get_vaults, wait_for_graph_node_sync_to_block
+from src.common.graph import check_for_graph_node_sync_to_block, graph_get_vaults
 from src.common.typings import HarvestParams
 from src.config.settings import (
     FORCE_EXITS_UPDATE_INTERVAL,
@@ -54,9 +54,8 @@ async def process_force_exits() -> None:
     logger.debug('Current block: %d', block['number'])
     block_number = block['number']
 
-    await wait_for_graph_node_sync_to_block(
-        graph_client=graph_client,
-        block_number=block_number,
+    await check_for_graph_node_sync_to_block(
+        block_number,
     )
     await handle_leverage_positions(block_number)
     await handle_ostoken_exit_requests(block_number)
@@ -74,7 +73,7 @@ async def handle_leverage_positions(block_number: BlockNumber) -> None:
     logger.info('Checking %d leverage positions...', len(leverage_positions))
 
     vault_addresses = list(set(position.vault for position in leverage_positions))
-    graph_vaults = await graph_get_vaults(graph_client=graph_client, vaults=vault_addresses)
+    graph_vaults = await graph_get_vaults(vaults=vault_addresses)
 
     # check by position borrow ltv
     for position in leverage_positions:
@@ -97,7 +96,7 @@ async def handle_ostoken_exit_requests(block_number: BlockNumber) -> None:
 
     logger.info('Force assets claim for %d exit requests...', len(exit_requests))
     vault_addresses = list(set(request.vault for request in exit_requests))
-    graph_vaults = await graph_get_vaults(graph_client=graph_client, vaults=vault_addresses)
+    graph_vaults = await graph_get_vaults(vaults=vault_addresses)
 
     for os_token_exit_request in exit_requests:
         position_owner = await graph_get_leverage_position_owner(os_token_exit_request.owner)
