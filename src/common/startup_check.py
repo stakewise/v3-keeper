@@ -6,7 +6,7 @@ from sw_utils import IpfsFetchClient
 from sw_utils.decorators import retry_aiohttp_errors
 
 from src.common.accounts import keeper_account
-from src.common.clients import get_consensus_client, get_execution_client
+from src.common.clients import get_consensus_client, get_execution_client, graph_client
 from src.common.execution import check_keeper_balance, get_protocol_config
 from src.common.graph import check_for_graph_node_sync_to_block
 from src.common.utils import aiohttp_fetch
@@ -140,6 +140,7 @@ async def startup_checks() -> None:
             )
     if _is_graph_used():
         await check_for_graph_node_sync_to_block('finalized')
+        logger.info('Connected to graph node at %s.', graph_client.endpoint)
 
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes() -> None:

@@ -10,6 +10,7 @@ from src.common.execution import get_keeper_balance, get_protocol_config
 from src.common.startup_check import startup_checks
 from src.config.settings import (
     FORCE_EXITS_SUPPORTED_NETWORKS,
+    GQL_LOG_LEVEL,
     LOG_LEVEL,
     METRICS_HOST,
     METRICS_PORT,
@@ -36,6 +37,7 @@ logging.basicConfig(
 )
 
 logging.getLogger('web3').setLevel(WEB3_LOG_LEVEL)
+logging.getLogger('gql.transport.aiohttp').setLevel(GQL_LOG_LEVEL)
 
 logger = logging.getLogger(__name__)
 

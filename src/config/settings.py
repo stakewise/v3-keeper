@@ -57,6 +57,7 @@ GRAPH_PAGE_SIZE: int = config('GRAPH_PAGE_SIZE', default=100, cast=int)
 # common
 LOG_LEVEL: str = config('LOG_LEVEL', default='INFO')
 WEB3_LOG_LEVEL: str = config('WEB3_LOG_LEVEL', default='INFO')
+GQL_LOG_LEVEL: str = config('GQL_LOG_LEVEL', default='WARNING')
 
 
 # IPFS fetch
