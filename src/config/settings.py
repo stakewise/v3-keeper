@@ -49,7 +49,7 @@ FORCE_EXITS_UPDATE_INTERVAL: int = config(
 LTV_PERCENT_DELTA: float = config('LTV_PERCENT_DELTA', default='0.0002', cast=float)
 
 # graph
-GRAPH_API_URL: str = config('GRAPH_API_URL')
+GRAPH_API_URL: str = config('GRAPH_API_URL', default='')
 GRAPH_API_TIMEOUT: int = config('GRAPH_API_TIMEOUT', default='10', cast=int)
 GRAPH_API_RETRY_TIMEOUT: int = config('GRAPH_API_RETRY_TIMEOUT', default='60', cast=int)
 GRAPH_PAGE_SIZE: int = config('GRAPH_PAGE_SIZE', default=100, cast=int)
