@@ -39,7 +39,7 @@ PRICE_MAX_WAITING_TIME: int = config('PRICE_MAX_WAITING_TIME', default=3600, cas
 
 OSETH_PRICE_SUPPORTED_NETWORKS = [MAINNET, SEPOLIA]
 
-# FORCE EXIT
+# Force exit
 SKIP_FORCE_EXITS: bool = config('SKIP_FORCE_EXITS', default=False, cast=bool)
 FORCE_EXITS_SUPPORTED_NETWORKS = [MAINNET, HOODI]
 FORCE_EXITS_UPDATE_INTERVAL: int = config(
@@ -47,6 +47,9 @@ FORCE_EXITS_UPDATE_INTERVAL: int = config(
 )
 
 LTV_PERCENT_DELTA: float = config('LTV_PERCENT_DELTA', default='0.0002', cast=float)
+
+# Update LTV
+SKIP_UPDATE_LTV: bool = config('SKIP_UPDATE_LTV', default=False, cast=bool)
 
 # graph
 GRAPH_API_URL: str = config('GRAPH_API_URL', default='')
