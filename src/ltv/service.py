@@ -48,7 +48,11 @@ async def process_vault_max_ltv_user() -> None:
 
     for user in max_ltv_users:
         if user.address == user.prev_address:
-            logger.info('Max LTV user did not change since last update. Skip updating user.')
+            logger.info(
+                'Max LTV user did not change since last update for vault %s. '
+                'Skipping updating user.',
+                user.vault,
+            )
             continue
 
         logger.info('Updating max LTV user for vault %s', user.vault)
