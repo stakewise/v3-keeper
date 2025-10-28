@@ -50,6 +50,7 @@ LTV_PERCENT_DELTA: float = config('LTV_PERCENT_DELTA', default='0.0002', cast=fl
 
 # Update LTV
 SKIP_UPDATE_LTV: bool = config('SKIP_UPDATE_LTV', default=False, cast=bool)
+LTV_UPDATE_INTERVAL: int = config('LTV_UPDATE_INTERVAL', default=6 * 60 * 60, cast=int)
 
 # graph
 GRAPH_API_URL: str = config('GRAPH_API_URL', default='')

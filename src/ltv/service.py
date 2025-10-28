@@ -1,9 +1,12 @@
 import logging
+import time
 from decimal import Decimal
 
+from src.common.app_state import AppState
 from src.common.clients import execution_client
 from src.common.contracts import vault_user_ltv_tracker_contract
 from src.common.graph import check_for_graph_node_sync_to_block, graph_get_vaults
+from src.config.settings import LTV_UPDATE_INTERVAL
 
 from .graph import graph_get_ostoken_vaults, graph_get_vault_max_ltv_allocator
 from .typings import VaultMaxLtvUser
@@ -19,6 +22,15 @@ async def process_vault_max_ltv_user() -> None:
     """
     Finds user having maximum LTV in given vault and submits this user in the LTV Tracker contract.
     """
+    current_time = int(time.time())
+    app_state = AppState()
+
+    if (
+        app_state.ltv_updated_timestamp
+        and app_state.ltv_updated_timestamp + LTV_UPDATE_INTERVAL > current_time
+    ):
+        return
+
     block = await execution_client.eth.get_block('latest')
     logger.debug('Current block: %d', block['number'])
     block_number = block['number']
@@ -42,7 +54,8 @@ async def process_vault_max_ltv_user() -> None:
         logger.info('Updating max LTV user for vault %s', user.vault)
         await handle_max_ltv_user(user)
 
-    logger.info('Completed')
+    logger.info('LTV update process completed.')
+    app_state.ltv_updated_timestamp = current_time
 
 
 async def get_max_ltv_users() -> list[VaultMaxLtvUser]:

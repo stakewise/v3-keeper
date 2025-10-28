@@ -11,3 +11,4 @@ class AppState(metaclass=Singleton):
     def __init__(self) -> None:
         self.last_price_updated_timestamp: int | None = None
         self.force_exits_updated_timestamp: int | None = None
+        self.ltv_updated_timestamp: int | None = None
