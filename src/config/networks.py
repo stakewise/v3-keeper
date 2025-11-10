@@ -21,6 +21,7 @@ class NetworkConfig(BaseNetworkConfig):
     STRATEGY_REGISTRY_CONTRACT_ADDRESS: ChecksumAddress
     OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS: ChecksumAddress
     LEVERAGE_STRATEGY_ID: str
+    VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS: ChecksumAddress
 
 
 NETWORKS = {
@@ -35,6 +36,9 @@ NETWORKS = {
         OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0x09e84205DF7c68907e619D07aFD90143c5763605'
         ),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
+        ),
     ),
     HOODI: NetworkConfig(
         **asdict(BASE_NETWORKS[HOODI]),
@@ -47,6 +51,9 @@ NETWORKS = {
         OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xdC1347cC04d4a8945b98A09C3c5585286bbA5C2B'
         ),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xcF619F9Dd8eB483239de953251fd13cB0F977c6C'
+        ),
     ),
     GNOSIS: NetworkConfig(
         **asdict(BASE_NETWORKS[GNOSIS]),
@@ -57,6 +64,9 @@ NETWORKS = {
         OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0x28F325dD287a5984B754d34CfCA38af3A8429e71'
         ),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
+        ),
     ),
     CHIADO: NetworkConfig(
         **asdict(BASE_NETWORKS[CHIADO]),
@@ -66,6 +76,9 @@ NETWORKS = {
         STRATEGY_REGISTRY_CONTRACT_ADDRESS=ZERO_CHECKSUM_ADDRESS,
         OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0x00aa8A78d88a9865b5b0F4ce50c3bB018c93FBa7'
+        ),
+        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
+            '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
         ),
     ),
 }
