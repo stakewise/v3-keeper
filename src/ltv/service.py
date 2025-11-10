@@ -31,7 +31,7 @@ async def process_vault_max_ltv_user() -> None:
     ):
         return
 
-    block = await execution_client.eth.get_block('latest')
+    block = await execution_client.eth.get_block('finalized')
     logger.debug('Current block: %d', block['number'])
     block_number = block['number']
 
