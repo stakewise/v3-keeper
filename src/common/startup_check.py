@@ -23,6 +23,7 @@ from src.config.settings import (
     PRICE_UPDATE_INTERVAL,
     SKIP_FORCE_EXITS,
     SKIP_OSETH_PRICE_UPDATE,
+    SKIP_UPDATE_LTV,
 )
 
 logger = logging.getLogger(__name__)
@@ -186,5 +187,7 @@ async def startup_checks() -> None:
 
 def _is_graph_used() -> bool:
     if NETWORK in FORCE_EXITS_SUPPORTED_NETWORKS and not SKIP_FORCE_EXITS:
+        return True
+    if not SKIP_UPDATE_LTV:
         return True
     return False
