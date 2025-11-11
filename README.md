@@ -37,9 +37,7 @@ Any execution client that supports [ETH Execution API specification](https://eth
 ### Consensus node
 
 The consensus node is used to fetch validator balances and consensus fork data required for validating exit signatures.
-Any consensus client
-that
-supports [ETH Beacon Node API specification](https://ethereum.github.io/beacon-APIs/#/) can be used:
+Any consensus client that supports [ETH Beacon Node API specification](https://ethereum.github.io/beacon-APIs/#/) can be used:
 
 - [Lighthouse](https://launchpad.ethereum.org/en/lighthouse) (Ethereum, Gnosis)
 - [Nimbus](https://launchpad.ethereum.org/en/nimbus) (Ethereum, Gnosis)
@@ -49,7 +47,7 @@ supports [ETH Beacon Node API specification](https://ethereum.github.io/beacon-A
 
 ### Stakewise Subgraph node
 
-If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointed to StakeWise subgraph instance.
+If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointing to StakeWise subgraph instance.
 
 ## Usage
 
