@@ -2,7 +2,16 @@
 
 ## Introduction
 
-Keeper is responsible for collecting votes from StakeWise v3 oracles, validating and sending them to the Keeper contract.
+Keeper is responsible for several tasks, connecting oracles, contracts, and blockchain data:
+
+- Collecting rewards votes from StakeWise v3 oracles, validating and sending them to the Keeper contract.
+- Collecting exposed validator exit signatures from StakeWise v3 oracles and sending them to the consensus node.
+- Collecting distributor votes from StakeWise v3 oracles, validating and sending them to the Keeper contract.  Can be disabled with `SKIP_DISTRIBUTOR_REWARDS` env.
+- Update osEth price on Arbitrum chain using Ethereum data. Working only at Ethereum mainnet and Sepolia networks. Can be disabled with `SKIP_OSETH_PRICE_UPDATE` env.
+- Finds user having maximum LTV in given vault and submits this user in the LTV Tracker contract. Can be disabled with `SKIP_UPDATE_LTV` env.
+- Monitor leverage positions and trigger exits/claims for those that approach the liquidation threshold. Can be disabled with `SKIP_FORCE_EXITS` env.
+
+### Rewards
 
 Keeper is a service that aggregates votes that were submitted by all the StakeWise v3 oracles and submits the resulted transaction.
 It helps save gas cost and stability as there is no need for every oracle to submit a vote.
@@ -24,6 +33,23 @@ Any execution client that supports [ETH Execution API specification](https://eth
 - [Besu](https://launchpad.ethereum.org/en/besu) (Ethereum)
 - [Erigon](https://launchpad.ethereum.org/en/erigon) (Ethereum)
 - [Geth](https://launchpad.ethereum.org/en/geth) (Ethereum)
+
+### Consensus node
+
+The consensus node is used to fetch validator balances and consensus fork data required for validating exit signatures.
+Any consensus client
+that
+supports [ETH Beacon Node API specification](https://ethereum.github.io/beacon-APIs/#/) can be used:
+
+- [Lighthouse](https://launchpad.ethereum.org/en/lighthouse) (Ethereum, Gnosis)
+- [Nimbus](https://launchpad.ethereum.org/en/nimbus) (Ethereum, Gnosis)
+- [Prysm](https://launchpad.ethereum.org/en/prysm) (Ethereum)
+- [Teku](https://launchpad.ethereum.org/en/teku) (Ethereum, Gnosis)
+- [Lodestar](https://launchpad.ethereum.org/en/lodestar) (Ethereum, Gnosis)
+
+### Stakewise Subgraph node
+
+If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointed to StakeWise subgraph instance.
 
 ## Usage
 
