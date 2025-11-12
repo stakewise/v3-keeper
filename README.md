@@ -45,7 +45,7 @@ Any consensus client that supports [ETH Beacon Node API specification](https://e
 - [Teku](https://launchpad.ethereum.org/en/teku) (Ethereum, Gnosis)
 - [Lodestar](https://launchpad.ethereum.org/en/lodestar) (Ethereum, Gnosis)
 
-### Stakewise Subgraph node
+### StakeWise Subgraph node
 
 If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointing to a [StakeWise subgraph](https://github.com/stakewise/v3-subgraph) instance.
 
