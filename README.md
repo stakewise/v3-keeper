@@ -8,8 +8,8 @@ Keeper is responsible for several tasks, connecting oracles, contracts, and bloc
 - Collecting exposed validator exit signatures from StakeWise v3 oracles and sending them to the consensus node.
 - Collecting distributor votes from StakeWise v3 oracles, validating and sending them to the Keeper contract.  Can be disabled with `SKIP_DISTRIBUTOR_REWARDS` env.
 - Update osEth price on Arbitrum chain using Ethereum data. Working only at Ethereum mainnet and Sepolia networks. Can be disabled with `SKIP_OSETH_PRICE_UPDATE` env.
-- Finds user having maximum LTV in os token vaults and submits this user in the LTV Tracker contract. Can be disabled with `SKIP_UPDATE_LTV` env.
-- Monitor leverage positions and trigger exits/claims for those that approach the liquidation threshold. Can be disabled with `SKIP_FORCE_EXITS` env.
+- Finding user having maximum LTV in os token vaults and submitting this user in the LTV Tracker contract. Can be disabled with `SKIP_UPDATE_LTV` env.
+- Monitoring leverage positions and triggering exits/claims for those that approach the liquidation threshold. Can be disabled with `SKIP_FORCE_EXITS` env.
 
 ### Rewards
 
