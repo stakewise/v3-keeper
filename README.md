@@ -47,7 +47,7 @@ Any consensus client that supports [ETH Beacon Node API specification](https://e
 
 ### Stakewise Subgraph node
 
-If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointing to StakeWise subgraph instance.
+If LTV update or force trigger exits/claims for leverage positions are enabled, you should set `GRAPH_API_URL` pointing to [StakeWise subgraph](https://github.com/stakewise/v3-subgraph) instance.
 
 ## Usage
 
