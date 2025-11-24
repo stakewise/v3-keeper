@@ -14,6 +14,7 @@ from src.common.clients import execution_client, gas_manager
 from src.common.typings import HarvestParams
 from src.config.settings import (
     ATTEMPTS_WITH_DEFAULT_GAS,
+    EVENT_SCAN_BLOCKS_RANGE,
     NETWORK_CONFIG,
     PRICE_NETWORK_CONFIG,
 )
@@ -22,8 +23,6 @@ from src.price.clients import l2_execution_client
 from src.rewards.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
-
-EVENTS_BLOCKS_RANGE_INTERVAL = 24 * 60 * 60  # 24 hrs
 
 
 def _load_abi(abi_path: str) -> Dict:
@@ -59,16 +58,15 @@ class ContractWrapper:
         from_block: BlockNumber,
         to_block: BlockNumber,
     ) -> EventData | None:
-        blocks_range = int(EVENTS_BLOCKS_RANGE_INTERVAL // NETWORK_CONFIG.SECONDS_PER_BLOCK)
         event_cls = getattr(self.contract.events, event_name)
         while to_block >= from_block:
             events = await event_cls.get_logs(
-                fromBlock=BlockNumber(max(to_block - blocks_range, from_block)),
+                fromBlock=BlockNumber(max(to_block - EVENT_SCAN_BLOCKS_RANGE, from_block)),
                 toBlock=to_block,
             )
             if events:
                 return events[-1]
-            to_block = BlockNumber(to_block - blocks_range - 1)
+            to_block = BlockNumber(to_block - EVENT_SCAN_BLOCKS_RANGE - 1)
         return None
 
 
