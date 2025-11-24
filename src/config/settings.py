@@ -86,7 +86,7 @@ METRICS_HOST: str = config('METRICS_HOST', default='127.0.0.1')
 METRICS_PORT: int = config('METRICS_PORT', default=9100, cast=int)
 
 EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', default=60, cast=int)
-EVENTS_BLOCKS_RANGE_INTERVAL: int = config('EVENTS_BLOCKS_RANGE_INTERVAL', default=10000, cast=int)
+EVENT_SCAN_BLOCKS_RANGE: int = config('EVENT_SCAN_BLOCKS_RANGE', default=10000, cast=int)
 
 ORACLE_TIMEOUT: int = config('ORACLE_TIMEOUT', default=60, cast=int)
 

@@ -14,7 +14,7 @@ from src.common.clients import execution_client, gas_manager
 from src.common.typings import HarvestParams
 from src.config.settings import (
     ATTEMPTS_WITH_DEFAULT_GAS,
-    EVENTS_BLOCKS_RANGE_INTERVAL,
+    EVENT_SCAN_BLOCKS_RANGE,
     NETWORK_CONFIG,
     PRICE_NETWORK_CONFIG,
 )
@@ -61,12 +61,12 @@ class ContractWrapper:
         event_cls = getattr(self.contract.events, event_name)
         while to_block >= from_block:
             events = await event_cls.get_logs(
-                fromBlock=BlockNumber(max(to_block - EVENTS_BLOCKS_RANGE_INTERVAL, from_block)),
+                fromBlock=BlockNumber(max(to_block - EVENT_SCAN_BLOCKS_RANGE, from_block)),
                 toBlock=to_block,
             )
             if events:
                 return events[-1]
-            to_block = BlockNumber(to_block - EVENTS_BLOCKS_RANGE_INTERVAL - 1)
+            to_block = BlockNumber(to_block - EVENT_SCAN_BLOCKS_RANGE - 1)
         return None
 
 
