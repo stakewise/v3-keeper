@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass
 
 from ens.constants import EMPTY_ADDR_HEX
-from sw_utils.networks import CHIADO, GNOSIS, HOODI, MAINNET
+from sw_utils.networks import GNOSIS, HOODI, MAINNET
 from sw_utils.networks import NETWORKS as BASE_NETWORKS
 from sw_utils.networks import BaseNetworkConfig
 from web3 import Web3
@@ -9,7 +9,7 @@ from web3.types import ChecksumAddress, Wei
 
 SEPOLIA = 'sepolia'
 
-ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, CHIADO, SEPOLIA]
+ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, SEPOLIA]
 
 ZERO_CHECKSUM_ADDRESS = Web3.to_checksum_address(EMPTY_ADDR_HEX)  # noqa
 
@@ -68,19 +68,6 @@ NETWORKS = {
             '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
         ),
     ),
-    CHIADO: NetworkConfig(
-        **asdict(BASE_NETWORKS[CHIADO]),
-        SYMBOL='xDAI',
-        KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
-        LEVERAGE_STRATEGY_ID='',
-        STRATEGY_REGISTRY_CONTRACT_ADDRESS=ZERO_CHECKSUM_ADDRESS,
-        OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0x00aa8A78d88a9865b5b0F4ce50c3bB018c93FBa7'
-        ),
-        VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
-            '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
-        ),
-    ),
 }
 
 
@@ -115,7 +102,6 @@ PRICE_NETWORKS: dict[str, PriceNetworkConfig | None] = {
     ),
     HOODI: None,
     GNOSIS: None,
-    CHIADO: None,
     SEPOLIA: PriceNetworkConfig(
         # TARGET_CHAIN is not what eth_chainId returns.
         # It is internal id used in PriceFeedSender contract.
