@@ -47,8 +47,8 @@ async def startup_checks() -> None:
             await asyncio.sleep(10)
 
     async def _check_consensus_node(consensus_endpoint: str) -> bool:
+        consensus_client = get_consensus_client([consensus_endpoint])
         try:
-            consensus_client = get_consensus_client([consensus_endpoint])
             syncing = await consensus_client.get_syncing()
             if syncing['data']['is_syncing'] is True:
                 logger.warning(
@@ -73,6 +73,8 @@ async def startup_checks() -> None:
                 e,
             )
             return False
+        finally:
+            await consensus_client.disconnect()
 
     await _check_consensus_nodes()
 
@@ -97,9 +99,8 @@ async def startup_checks() -> None:
             await asyncio.sleep(10)
 
     async def _check_execution_node(execution_endpoint: str) -> bool:
+        execution_client = get_execution_client([execution_endpoint])
         try:
-            execution_client = get_execution_client([execution_endpoint])
-
             syncing = await execution_client.eth.syncing
             if syncing is True:
                 logger.warning(
@@ -130,6 +131,9 @@ async def startup_checks() -> None:
             )
             return False
 
+        finally:
+            await execution_client.provider.disconnect()
+
     await _check_execution_nodes()
 
     if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
@@ -142,7 +146,7 @@ async def startup_checks() -> None:
     if _is_graph_used():
         await check_for_graph_node_sync_to_block('finalized')
         logger.info('Connected to graph node at %s.', graph_client.endpoint)
-
+    return
     @retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
     async def _check_ipfs_fetch_nodes() -> None:
         logger.info('Checking connection to ipfs fetch nodes...')
