@@ -44,7 +44,7 @@ class ContractWrapper:
         return self.contract.functions
 
     def encode_abi(self, fn_name: str, args: list | None = None) -> HexStr:
-        return self.contract.encodeABI(fn_name=fn_name, args=args)
+        return self.contract.encode_abi(fn_name, args=args)
 
     @staticmethod
     def _get_zero_harvest_params() -> HarvestParams:
@@ -61,8 +61,8 @@ class ContractWrapper:
         event_cls = getattr(self.contract.events, event_name)
         while to_block >= from_block:
             events = await event_cls.get_logs(
-                fromBlock=BlockNumber(max(to_block - EVENT_SCAN_BLOCKS_RANGE, from_block)),
-                toBlock=to_block,
+                from_block=BlockNumber(max(to_block - EVENT_SCAN_BLOCKS_RANGE, from_block)),
+                to_block=to_block,
             )
             if events:
                 return events[-1]

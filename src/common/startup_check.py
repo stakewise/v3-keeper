@@ -47,8 +47,8 @@ async def startup_checks() -> None:
             await asyncio.sleep(10)
 
     async def _check_consensus_node(consensus_endpoint: str) -> bool:
+        consensus_client = get_consensus_client([consensus_endpoint])
         try:
-            consensus_client = get_consensus_client([consensus_endpoint])
             syncing = await consensus_client.get_syncing()
             if syncing['data']['is_syncing'] is True:
                 logger.warning(
@@ -73,6 +73,8 @@ async def startup_checks() -> None:
                 e,
             )
             return False
+        finally:
+            await consensus_client.disconnect()
 
     await _check_consensus_nodes()
 
@@ -97,9 +99,8 @@ async def startup_checks() -> None:
             await asyncio.sleep(10)
 
     async def _check_execution_node(execution_endpoint: str) -> bool:
+        execution_client = get_execution_client([execution_endpoint])
         try:
-            execution_client = get_execution_client([execution_endpoint])
-
             syncing = await execution_client.eth.syncing
             if syncing is True:
                 logger.warning(
@@ -129,6 +130,9 @@ async def startup_checks() -> None:
                 e,
             )
             return False
+
+        finally:
+            await execution_client.provider.disconnect()
 
     await _check_execution_nodes()
 
