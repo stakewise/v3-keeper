@@ -32,9 +32,15 @@ async def setup_execution_client(w3: AsyncWeb3) -> None:
     w3.eth.default_account = keeper_account.address
 
 
+async def setup_clients() -> None:
+    await setup_execution_client(execution_client)
+    await graph_client.setup()
+
+
 async def close_clients() -> None:
     await consensus_client.disconnect()
     await execution_client.provider.disconnect()
+    await graph_client.disconnect()
 
 
 def build_gas_manager() -> GasManager:

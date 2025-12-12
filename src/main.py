@@ -5,7 +5,7 @@ import time
 from sw_utils import InterruptHandler
 
 import src
-from src.common.clients import close_clients, execution_client, setup_execution_client
+from src.common.clients import close_clients, setup_clients
 from src.common.execution import get_keeper_balance, get_protocol_config
 from src.common.startup_check import startup_checks
 from src.config.settings import (
@@ -50,13 +50,12 @@ def log_start() -> None:
 
 async def main() -> None:
     log_start()
-    await setup_execution_client(execution_client)
-    await startup_checks()
-
-    logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
-    await metrics_server()
-    logger.info('Started keeper service...')
     try:
+        await setup_clients()
+        await startup_checks()
+        logger.info('Starting metrics server: %s:%i', METRICS_HOST, METRICS_PORT)
+        await metrics_server()
+        logger.info('Started keeper service...')
         await start_keeper()
     finally:
         await close_clients()
