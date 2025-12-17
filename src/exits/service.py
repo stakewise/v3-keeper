@@ -13,7 +13,7 @@ from web3.types import HexStr
 
 from src.common.clients import consensus_client
 from src.common.utils import aiohttp_fetch
-from src.config.settings import NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
+from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.exits.crypto import reconstruct_shared_bls_signature
 from src.exits.typings import ValidatorExitShare
 from src.metrics import metrics
@@ -36,10 +36,10 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
         consensus_client=consensus_client, slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
     )
 
-    metrics.epoch.set(chain_head.epoch)
-    metrics.consensus_block.set(chain_head.slot)
-    metrics.execution_block.set(chain_head.block_number)
-    metrics.execution_ts.set(chain_head.execution_ts)
+    metrics.epoch.labels(network=NETWORK).set(chain_head.epoch)
+    metrics.consensus_block.labels(network=NETWORK).set(chain_head.slot)
+    metrics.execution_block.labels(network=NETWORK).set(chain_head.block_number)
+    metrics.execution_ts.labels(network=NETWORK).set(chain_head.execution_ts)
 
     validator_exits = await _fetch_validator_exits(protocol_config.oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
@@ -147,7 +147,7 @@ async def _fetch_exit_shares_from_endpoint(
         )
         exits.append(validator_exit)
 
-    metrics.processed_exits.inc(len(exits))
+    metrics.processed_exits.labels(network=NETWORK).inc(len(exits))
 
     return exits
 

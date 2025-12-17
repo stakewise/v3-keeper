@@ -13,6 +13,7 @@ from web3.types import Timestamp
 from src.common.contracts import keeper_contract
 from src.common.execution import wait_for_tx_status
 from src.common.utils import aiohttp_fetch
+from src.config.settings import NETWORK
 from src.metrics import metrics
 from src.rewards.typings import RewardVote, RewardVoteBody
 
@@ -192,10 +193,12 @@ async def _fetch_vote_from_endpoint(
             logger.warning('Invalid response from oracle')
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
-    metrics.oracle_avg_rewards_per_second.labels(oracle_address=endpoint).set(
+    metrics.oracle_avg_rewards_per_second.labels(oracle_address=endpoint, network=NETWORK).set(
         data['avg_reward_per_second']
     )
-    metrics.oracle_update_timestamp.labels(oracle_address=endpoint).set(data['update_timestamp'])
+    metrics.oracle_update_timestamp.labels(oracle_address=endpoint, network=NETWORK).set(
+        data['update_timestamp']
+    )
 
     vote = RewardVote(
         oracle_address=oracle.address,

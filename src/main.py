@@ -113,7 +113,7 @@ async def start_keeper() -> None:
                     if isinstance(result, Exception):
                         logger.exception('', exc_info=result)
 
-                metrics.keeper_balance.set(await get_keeper_balance())
+                metrics.keeper_balance.labels(network=NETWORK).set(await get_keeper_balance())
             except Exception as exc:
                 logger.exception(exc)
 
