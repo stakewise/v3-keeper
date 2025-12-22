@@ -8,8 +8,8 @@ from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from hexbytes import HexBytes
 from web3 import AsyncWeb3, Web3
 from web3.contract.async_contract import AsyncContractFunction, AsyncContractFunctions
-from web3.types import EventData, TxParams, Wei
 from web3.exceptions import Web3RPCError
+from web3.types import EventData, TxParams, Wei
 
 from src.common.clients import execution_client, gas_manager
 from src.common.typings import HarvestParams
