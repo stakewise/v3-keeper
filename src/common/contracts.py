@@ -305,10 +305,7 @@ async def transaction_gas_wrapper(
             return await tx_function.transact(tx_params)
         except Web3RPCError as e:
             # Handle only FeeTooLow error
-            code = None
-            if e.args and isinstance(e.args[0], dict):
-                code = e.args[0].get('code')
-            if not code or code != -32010:
+            if not e.message or '-32010' not in e.message:
                 raise e
             logger.warning(e)
             if i < ATTEMPTS_WITH_DEFAULT_GAS - 1:  # skip last sleep
