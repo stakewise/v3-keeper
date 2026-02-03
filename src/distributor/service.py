@@ -86,10 +86,12 @@ async def _fetch_distributor_reward_votes(oracles: list[Oracle]) -> list[Distrib
     for result in results:
         if result is None:
             continue
-        if isinstance(result, BaseException):
+        if isinstance(result, Exception):
             logger.warning(result)
             continue
-
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         votes.append(result)
 
     return votes
@@ -106,9 +108,12 @@ async def _fetch_vote_from_oracle(
     for endpoint, result in zip(oracle.endpoints, results):
         if result is None:
             continue
-        if isinstance(result, BaseException):
+        if isinstance(result, Exception):
             logger.warning('%r from %s', result, endpoint)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         votes.append(result)
 
     if not votes:

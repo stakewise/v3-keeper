@@ -91,9 +91,12 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
         )
     validator_exits = defaultdict(list)
     for result in results:
-        if isinstance(result, BaseException):
+        if isinstance(result, Exception):
             logger.warning(result)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
 
         if result:
             for validator_exit in result:
@@ -113,9 +116,12 @@ async def _fetch_exit_shares_from_oracle(
         return_exceptions=True,
     )
     for endpoint, result in zip(oracle.endpoints, results):
-        if isinstance(result, BaseException):
+        if isinstance(result, Exception):
             logger.warning('%s from %s', repr(result), endpoint)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         if result:
             return result
     return []
