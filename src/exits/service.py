@@ -91,7 +91,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
         )
     validator_exits = defaultdict(list)
     for result in results:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             logger.warning(result)
             continue
 
@@ -105,7 +105,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 async def _fetch_exit_shares_from_oracle(
     session: ClientSession, oracle: Oracle, oracle_index: int
 ) -> list[ValidatorExitShare]:
-    results: list[list[ValidatorExitShare] | Exception] = await asyncio.gather(
+    results = await asyncio.gather(
         *(
             _fetch_exit_shares_from_endpoint(session, oracle, endpoint, oracle_index)
             for endpoint in oracle.endpoints
@@ -113,7 +113,7 @@ async def _fetch_exit_shares_from_oracle(
         return_exceptions=True,
     )
     for endpoint, result in zip(oracle.endpoints, results):
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             logger.warning('%s from %s', repr(result), endpoint)
             continue
         if result:

@@ -133,7 +133,7 @@ async def _fetch_reward_votes(oracles: list[Oracle]) -> list[RewardVote]:
 
     votes: list[RewardVote] = []
     for result in results:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             logger.warning(result)
             continue
 
@@ -147,13 +147,13 @@ def _can_submit(signatures_count: int, threshold: int) -> bool:
 
 
 async def _fetch_vote_from_oracle(session: ClientSession, oracle: Oracle) -> RewardVote:
-    results: list[RewardVote | Exception] = await asyncio.gather(
+    results = await asyncio.gather(
         *(_fetch_vote_from_endpoint(session, oracle, endpoint) for endpoint in oracle.endpoints),
         return_exceptions=True,
     )
     votes: list[RewardVote] = []
     for endpoint, result in zip(oracle.endpoints, results):
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             logger.warning('%s from %s', repr(result), endpoint)
             continue
         votes.append(result)
