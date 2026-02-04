@@ -89,7 +89,9 @@ async def _fetch_distributor_reward_votes(oracles: list[Oracle]) -> list[Distrib
         if isinstance(result, Exception):
             logger.warning(result)
             continue
-
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         votes.append(result)
 
     return votes
@@ -98,7 +100,7 @@ async def _fetch_distributor_reward_votes(oracles: list[Oracle]) -> list[Distrib
 async def _fetch_vote_from_oracle(
     session: ClientSession, oracle: Oracle
 ) -> DistributorRewardVote | None:
-    results: list[DistributorRewardVote | Exception | None] = await asyncio.gather(
+    results = await asyncio.gather(
         *(_fetch_vote_from_endpoint(session, oracle, endpoint) for endpoint in oracle.endpoints),
         return_exceptions=True,
     )
@@ -109,6 +111,9 @@ async def _fetch_vote_from_oracle(
         if isinstance(result, Exception):
             logger.warning('%r from %s', result, endpoint)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         votes.append(result)
 
     if not votes:

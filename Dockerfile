@@ -1,5 +1,5 @@
 # `python-base` sets up all our shared environment variables
-FROM python:3.10.14-alpine3.20 as python-base
+FROM python:3.12.12-alpine3.23 as python-base
 
     # python
 ENV PYTHONUNBUFFERED=1 \

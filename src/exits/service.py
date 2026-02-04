@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import logging
 from collections import defaultdict
 from urllib.parse import urljoin
@@ -44,9 +45,9 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
     validator_exits = await _fetch_validator_exits(protocol_config.oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
     exited_statuses = [x.value for x in EXITING_STATUSES]
-    for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
+    for validator_index_batch in itertools.batched(validator_indexes, VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
-            validator_ids=validator_indexes[i : i + VALIDATORS_FETCH_CHUNK_SIZE],
+            validator_ids=validator_index_batch,
             state_id=str(chain_head.slot),
         )
         for validator in validators_batch['data']:
@@ -94,6 +95,9 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
         if isinstance(result, Exception):
             logger.warning(result)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
 
         if result:
             for validator_exit in result:
@@ -105,7 +109,7 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 async def _fetch_exit_shares_from_oracle(
     session: ClientSession, oracle: Oracle, oracle_index: int
 ) -> list[ValidatorExitShare]:
-    results: list[list[ValidatorExitShare] | Exception] = await asyncio.gather(
+    results = await asyncio.gather(
         *(
             _fetch_exit_shares_from_endpoint(session, oracle, endpoint, oracle_index)
             for endpoint in oracle.endpoints
@@ -116,6 +120,9 @@ async def _fetch_exit_shares_from_oracle(
         if isinstance(result, Exception):
             logger.warning('%s from %s', repr(result), endpoint)
             continue
+        if isinstance(result, BaseException):
+            # Re-raise system-exiting exceptions
+            raise result
         if result:
             return result
     return []
