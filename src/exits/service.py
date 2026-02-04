@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import logging
 from collections import defaultdict
 from urllib.parse import urljoin
@@ -44,9 +45,9 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
     validator_exits = await _fetch_validator_exits(protocol_config.oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
     exited_statuses = [x.value for x in EXITING_STATUSES]
-    for i in range(0, len(validator_indexes), VALIDATORS_FETCH_CHUNK_SIZE):
+    for validator_index_batch in itertools.batched(validator_indexes, VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
-            validator_ids=validator_indexes[i : i + VALIDATORS_FETCH_CHUNK_SIZE],
+            validator_ids=validator_index_batch,
             state_id=str(chain_head.slot),
         )
         for validator in validators_batch['data']:
