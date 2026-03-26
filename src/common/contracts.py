@@ -116,13 +116,25 @@ class KeeperContract(ContractWrapper):
 
     async def get_config_update_event(self) -> EventData | None:
         to_block = await execution_client.eth.get_block_number()
+        # Start scanning from after the known checkpoint to avoid re-scanning
+        # the entire history on every call.
+        from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
 
         event = await self._get_last_event(
             event_name='ConfigUpdated',
-            from_block=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK,
+            from_block=from_block,
             to_block=to_block,
         )
-        return event
+        if event is not None:
+            return event
+
+        # No new event since the checkpoint — fall back to the cached event block.
+        cached_block = NETWORK_CONFIG.CONFIG_UPDATED_EVENT_BLOCK
+        events = await self.contract.events.ConfigUpdated.get_logs(
+            from_block=cached_block,
+            to_block=cached_block,
+        )
+        return events[-1] if events else None
 
 
 class MulticallContract(ContractWrapper):

@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass
 
 from ens.constants import EMPTY_ADDR_HEX
+from eth_typing import BlockNumber
 from sw_utils.networks import GNOSIS, HOODI, MAINNET
 from sw_utils.networks import NETWORKS as BASE_NETWORKS
 from sw_utils.networks import BaseNetworkConfig
@@ -9,7 +10,7 @@ from web3.types import ChecksumAddress, Wei
 
 SEPOLIA = 'sepolia'
 
-ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, SEPOLIA]
+ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS]
 
 ZERO_CHECKSUM_ADDRESS = Web3.to_checksum_address(EMPTY_ADDR_HEX)  # noqa
 
@@ -22,6 +23,8 @@ class NetworkConfig(BaseNetworkConfig):
     OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS: ChecksumAddress
     LEVERAGE_STRATEGY_ID: str
     VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS: ChecksumAddress
+    CONFIG_UPDATED_CHECKPOINT_BLOCK: BlockNumber
+    CONFIG_UPDATED_EVENT_BLOCK: BlockNumber
 
 
 NETWORKS = {
@@ -39,6 +42,8 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
         ),
+        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(24744015),
+        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(23582611),
     ),
     HOODI: NetworkConfig(
         **asdict(BASE_NETWORKS[HOODI]),
@@ -54,6 +59,8 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xcF619F9Dd8eB483239de953251fd13cB0F977c6C'
         ),
+        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(2495327),
+        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(1279009),
     ),
     GNOSIS: NetworkConfig(
         **asdict(BASE_NETWORKS[GNOSIS]),
@@ -67,6 +74,8 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
         ),
+        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(45353742),
+        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(42392284),
     ),
 }
 
