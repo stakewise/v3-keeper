@@ -87,7 +87,7 @@ METRICS_PORT: int = config('METRICS_PORT', default=9100, cast=int)
 
 EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', default=60, cast=int)
 
-# eth_getLogs blocks range size in seconds, default is 12 hours
+# eth_getLogs range size in seconds, default is 12 hours
 EVENTS_RANGE_SEC: int = config('EVENTS_RANGE_SEC', default=43200, cast=int)
 
 # number of concurrent tasks for processing events

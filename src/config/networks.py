@@ -10,8 +10,7 @@ from web3.types import ChecksumAddress, Wei
 
 SEPOLIA = 'sepolia'
 
-ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS]
-
+ENABLED_NETWORKS = [MAINNET, HOODI, GNOSIS, SEPOLIA]
 ZERO_CHECKSUM_ADDRESS = Web3.to_checksum_address(EMPTY_ADDR_HEX)  # noqa
 
 
