@@ -86,7 +86,12 @@ METRICS_HOST: str = config('METRICS_HOST', default='127.0.0.1')
 METRICS_PORT: int = config('METRICS_PORT', default=9100, cast=int)
 
 EXECUTION_TRANSACTION_TIMEOUT: int = config('EXECUTION_TRANSACTION_TIMEOUT', default=60, cast=int)
-EVENT_SCAN_BLOCKS_RANGE: int = config('EVENT_SCAN_BLOCKS_RANGE', default=10000, cast=int)
+
+# eth_getLogs range size in seconds, default is 12 hours
+EVENTS_RANGE_SEC: int = config('EVENTS_RANGE_SEC', default=43200, cast=int)
+
+# number of concurrent tasks for processing events
+EVENTS_CONCURRENCY: int = config('EVENTS_CONCURRENCY', default=10, cast=int)
 
 ORACLE_TIMEOUT: int = config('ORACLE_TIMEOUT', default=60, cast=int)
 

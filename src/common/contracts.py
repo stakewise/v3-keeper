@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import logging
 import os
@@ -15,7 +16,8 @@ from src.common.clients import execution_client, gas_manager
 from src.common.typings import HarvestParams
 from src.config.settings import (
     ATTEMPTS_WITH_DEFAULT_GAS,
-    EVENT_SCAN_BLOCKS_RANGE,
+    EVENTS_CONCURRENCY,
+    EVENTS_RANGE_SEC,
     NETWORK_CONFIG,
     PRICE_NETWORK_CONFIG,
 )
@@ -60,14 +62,23 @@ class ContractWrapper:
         to_block: BlockNumber,
     ) -> EventData | None:
         event_cls = getattr(self.contract.events, event_name)
-        while to_block >= from_block:
-            events = await event_cls.get_logs(
-                from_block=BlockNumber(max(to_block - EVENT_SCAN_BLOCKS_RANGE, from_block)),
-                to_block=to_block,
+
+        blocks_range = max(EVENTS_RANGE_SEC // NETWORK_CONFIG.SECONDS_PER_BLOCK, 1)
+
+        ranges: list[tuple[BlockNumber, BlockNumber]] = []
+        chunk_to = to_block
+        while chunk_to >= from_block:
+            chunk_from = BlockNumber(max(chunk_to - blocks_range, from_block))
+            ranges.append((chunk_from, chunk_to))
+            chunk_to = BlockNumber(chunk_to - blocks_range - 1)
+
+        for batch in itertools.batched(ranges, EVENTS_CONCURRENCY):
+            batch_results = await asyncio.gather(
+                *[event_cls.get_logs(from_block=f, to_block=t) for f, t in batch]
             )
-            if events:
-                return events[-1]
-            to_block = BlockNumber(to_block - EVENT_SCAN_BLOCKS_RANGE - 1)
+            for chunk_events in batch_results:
+                if chunk_events:
+                    return chunk_events[-1]
         return None
 
 
@@ -105,13 +116,25 @@ class KeeperContract(ContractWrapper):
 
     async def get_config_update_event(self) -> EventData | None:
         to_block = await execution_client.eth.get_block_number()
+        # Start scanning from after the known checkpoint to avoid re-scanning
+        # the entire history on every call.
+        from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
 
         event = await self._get_last_event(
             event_name='ConfigUpdated',
-            from_block=NETWORK_CONFIG.KEEPER_GENESIS_BLOCK,
+            from_block=from_block,
             to_block=to_block,
         )
-        return event
+        if event is not None:
+            return event
+
+        # No new event since the checkpoint — fall back to the cached event block.
+        cached_block = NETWORK_CONFIG.CONFIG_UPDATED_EVENT_BLOCK
+        events = await self.contract.events.ConfigUpdated.get_logs(
+            from_block=cached_block,
+            to_block=cached_block,
+        )
+        return events[-1] if events else None
 
 
 class MulticallContract(ContractWrapper):
