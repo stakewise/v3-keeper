@@ -3,7 +3,6 @@ import logging
 
 from aiohttp import ClientSession, ClientTimeout
 from sw_utils import IpfsFetchClient
-from sw_utils.decorators import retry_aiohttp_errors
 
 from src.common.accounts import keeper_account
 from src.common.clients import get_consensus_client, get_execution_client, graph_client
@@ -12,7 +11,6 @@ from src.common.graph import check_for_graph_node_sync_to_block
 from src.common.utils import aiohttp_fetch
 from src.config.settings import (
     CONSENSUS_ENDPOINTS,
-    DEFAULT_RETRY_TIME,
     EXECUTION_ENDPOINTS,
     FORCE_EXITS_SUPPORTED_NETWORKS,
     IPFS_FETCH_ENDPOINTS,
@@ -126,6 +124,10 @@ async def _check_execution_nodes() -> None:
 
 
 async def _check_l2_execution_nodes() -> None:
+    if not L2_EXECUTION_ENDPOINTS:
+        logger.warning('L2_EXECUTION_ENDPOINTS is empty, skipping l2 execution nodes check.')
+        return
+
     while True:
         nodes_ready = [await _check_execution_node(endpoint) for endpoint in L2_EXECUTION_ENDPOINTS]
         if any(nodes_ready):
@@ -171,20 +173,27 @@ async def _check_execution_node(execution_endpoint: str) -> bool:
         await execution_client.provider.disconnect()
 
 
-@retry_aiohttp_errors(delay=DEFAULT_RETRY_TIME)
 async def _check_ipfs_fetch_nodes() -> None:
+    if not IPFS_FETCH_ENDPOINTS:
+        logger.warning('IPFS_FETCH_ENDPOINTS is empty, skipping IPFS fetch nodes check.')
+        return
     logger.info('Checking connection to ipfs fetch nodes...')
 
-    healthy_ipfs_endpoint = []
-    for endpoint in IPFS_FETCH_ENDPOINTS:
-        client = IpfsFetchClient([endpoint])
-        try:
-            await client.fetch_json(IPFS_HASH_EXAMPLE)
-        except Exception as e:
-            logger.warning("Can't connect to ipfs node %s: %s", endpoint, e)
-        else:
-            healthy_ipfs_endpoint.append(endpoint)
-    logger.info('Connected to ipfs nodes at %s.', ', '.join(healthy_ipfs_endpoint))
+    healthy_ipfs_endpoints: list[str] = []
+
+    while not healthy_ipfs_endpoints:
+        for endpoint in IPFS_FETCH_ENDPOINTS:
+            client = IpfsFetchClient([endpoint])
+            try:
+                await client.fetch_json(IPFS_HASH_EXAMPLE)
+            except Exception as e:
+                logger.warning("Can't connect to ipfs node %s: %s", endpoint, e)
+            else:
+                healthy_ipfs_endpoints.append(endpoint)
+        if not healthy_ipfs_endpoints:
+            await asyncio.sleep(10)
+
+    logger.info('Connected to ipfs nodes at %s.', ', '.join(healthy_ipfs_endpoints))
 
 
 def _is_graph_used() -> bool:

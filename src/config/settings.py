@@ -65,7 +65,7 @@ GQL_LOG_LEVEL: str = config('GQL_LOG_LEVEL', default='WARNING')
 
 
 # IPFS fetch
-IPFS_FETCH_ENDPOINTS = config(
+IPFS_FETCH_ENDPOINTS: list[str] = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
     default=','.join(
