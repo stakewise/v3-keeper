@@ -175,8 +175,7 @@ async def _check_execution_node(execution_endpoint: str) -> bool:
 
 async def _check_ipfs_fetch_nodes() -> None:
     if not IPFS_FETCH_ENDPOINTS:
-        logger.warning('IPFS_FETCH_ENDPOINTS is empty, skipping IPFS fetch nodes check.')
-        return
+        raise ValueError('IPFS_FETCH_ENDPOINTS is empty, at least one endpoint is required.')
     logger.info('Checking connection to ipfs fetch nodes...')
 
     healthy_ipfs_endpoints: list[str] = []
