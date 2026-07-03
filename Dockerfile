@@ -57,13 +57,17 @@ FROM python-base as production
 # Remove vulnerable setuptools version (CVE-2024-6345)
 RUN pip3 uninstall setuptools -y
 
-USER nobody
-
 # Copy dependencies from build container
 WORKDIR /app
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY --from=builder-base /usr/lib/ /usr/lib/
 COPY --from=builder-base /lib/ /lib/
+
+# apk upgrade purges builder packages (libgcc/libstdc++) from the copied apk db.
+# Re-add them as they are needed by milagro_bls_binding at runtime.
+RUN apk upgrade --no-cache && apk add --no-cache libgcc libstdc++
+
+USER nobody
 
 # Copy source code
 COPY . ./
