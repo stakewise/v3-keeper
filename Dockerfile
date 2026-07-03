@@ -54,9 +54,6 @@ RUN poetry install --only main
 # `production` image used for runtime
 FROM python-base as production
 
-# Remove vulnerable setuptools version (CVE-2024-6345)
-RUN pip3 uninstall setuptools -y
-
 # Copy dependencies from build container
 WORKDIR /app
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
