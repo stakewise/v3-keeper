@@ -23,10 +23,7 @@ from src.rewards.typings import RewardVote, RewardVoteBody
 
 
 async def test_early():
-    with patch(
-        'src.rewards.service.aiohttp_fetch',
-        return_value=[],
-    ), patch.object(
+    with patch('src.rewards.service.aiohttp_fetch', return_value=[]), patch.object(
         keeper_contract,
         'can_update_rewards',
         return_value=False,
