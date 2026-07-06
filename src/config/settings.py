@@ -69,7 +69,13 @@ IPFS_FETCH_ENDPOINTS: list[str] = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
     default=','.join(
-        ['https://stakewise-v3.infura-ipfs.io/', 'https://gateway.pinata.cloud', 'https://ipfs.io']
+        [
+            'https://gateway.pinata.cloud',
+            'https://stakewise.myfilebase.com',
+            'https://stakewise-ipfs.quicknode-ipfs.com',
+            'https://ipfs.io',
+            'https://ipfs.filebase.io',
+        ]
     ),
 )
 IPFS_CLIENT_TIMEOUT: int = config('IPFS_CLIENT_TIMEOUT', default=60, cast=int)
