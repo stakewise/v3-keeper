@@ -68,7 +68,15 @@ GQL_LOG_LEVEL: str = config('GQL_LOG_LEVEL', default='WARNING')
 IPFS_FETCH_ENDPOINTS: list[str] = config(
     'IPFS_FETCH_ENDPOINTS',
     cast=Csv(),
-    default=','.join(['https://gateway.pinata.cloud', 'https://ipfs.io']),
+    default=','.join(
+        [
+            'https://gateway.pinata.cloud',
+            'https://stakewise.myfilebase.com',
+            'https://stakewise-ipfs.quicknode-ipfs.com',
+            'https://ipfs.io',
+            'https://ipfs.filebase.io',
+        ]
+    ),
 )
 IPFS_CLIENT_TIMEOUT: int = config('IPFS_CLIENT_TIMEOUT', default=60, cast=int)
 IPFS_CLIENT_RETRY_TIMEOUT: int = config('IPFS_CLIENT_RETRY_TIMEOUT', default=120, cast=int)
