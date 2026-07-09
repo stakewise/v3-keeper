@@ -8,14 +8,13 @@ from typing import Dict
 from eth_typing import BlockNumber, ChecksumAddress, HexStr
 from hexbytes import HexBytes
 from web3 import AsyncWeb3, Web3
-from web3.contract.async_contract import AsyncContractFunction, AsyncContractFunctions
-from web3.exceptions import Web3RPCError
-from web3.types import EventData, TxParams, Wei
+from web3.contract.async_contract import AsyncContractFunctions
+from web3.types import EventData, TxReceipt, Wei
 
-from src.common.clients import execution_client, gas_manager
+from src.common.clients import execution_client
+from src.common.transaction import tx_manager
 from src.common.typings import HarvestParams
 from src.config.settings import (
-    ATTEMPTS_WITH_DEFAULT_GAS,
     EVENTS_CONCURRENCY,
     EVENTS_RANGE_SEC,
     NETWORK_CONFIG,
@@ -85,7 +84,7 @@ class ContractWrapper:
 class KeeperContract(ContractWrapper):
     abi_path = 'abi/IKeeper.json'
 
-    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> HexStr:
+    async def update_rewards(self, vote: RewardVoteBody, signatures: bytes) -> TxReceipt | None:
         tx_function = self.contract.functions.updateRewards(
             (
                 vote.root,
@@ -96,8 +95,7 @@ class KeeperContract(ContractWrapper):
             ),
         )
 
-        tx_hash = await transaction_gas_wrapper(tx_function=tx_function)
-        return Web3.to_hex(tx_hash)
+        return await tx_manager.transact(tx_function)
 
     async def get_rewards_nonce(self) -> int:
         return await self.contract.functions.rewardsNonce().call()
@@ -166,15 +164,14 @@ class MerkleDistributorContract(ContractWrapper):
 
     async def set_rewards_root(
         self, vote: DistributorRewardVoteBody, signatures: list[HexStr]
-    ) -> HexStr:
+    ) -> TxReceipt | None:
         tx_function = self.contract.functions.setRewardsRoot(
             vote.root,
             vote.ipfs_hash,
             b''.join(Web3.to_bytes(hexstr=signature) for signature in signatures),
         )
 
-        tx_hash = await transaction_gas_wrapper(tx_function=tx_function)
-        return Web3.to_hex(tx_hash)
+        return await tx_manager.transact(tx_function)
 
 
 class PriceFeedContract(ContractWrapper):
@@ -246,7 +243,7 @@ class VaultUserLTVTrackerContract(ContractWrapper):
 
     async def update_vault_max_ltv_user(
         self, vault: ChecksumAddress, user: ChecksumAddress, harvest_params: HarvestParams | None
-    ) -> HexBytes:
+    ) -> TxReceipt | None:
         # Create zero harvest params in case the vault has no rewards yet
         if harvest_params is None:
             harvest_params = self._get_zero_harvest_params()
@@ -261,7 +258,7 @@ class VaultUserLTVTrackerContract(ContractWrapper):
                 harvest_params.proof,
             ),
         )
-        return await transaction_gas_wrapper(tx_function=tx_function)
+        return await tx_manager.transact(tx_function)
 
 
 merkle_distributor_contract = MerkleDistributorContract(
@@ -313,27 +310,3 @@ if PRICE_NETWORK_CONFIG is not None:
 else:
     target_price_feed_contract = None
     price_feed_sender_contract = None
-
-
-async def transaction_gas_wrapper(
-    tx_function: AsyncContractFunction, tx_params: TxParams | None = None
-) -> HexBytes:
-    """Handles periods with high gas in the network."""
-    if not tx_params:
-        tx_params = {}
-
-    # trying to submit with basic gas
-    for i in range(ATTEMPTS_WITH_DEFAULT_GAS):
-        try:
-            return await tx_function.transact(tx_params)
-        except Web3RPCError as e:
-            # Handle only FeeTooLow error
-            if not e.message or '-32010' not in e.message:
-                raise e
-            logger.warning(e)
-            if i < ATTEMPTS_WITH_DEFAULT_GAS - 1:  # skip last sleep
-                await asyncio.sleep(NETWORK_CONFIG.SECONDS_PER_BLOCK)
-
-    # use high priority fee
-    tx_params = tx_params | await gas_manager.get_high_priority_tx_params()
-    return await tx_function.transact(tx_params)

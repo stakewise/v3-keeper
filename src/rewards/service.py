@@ -11,7 +11,6 @@ from web3 import Web3
 from web3.types import Timestamp
 
 from src.common.contracts import keeper_contract
-from src.common.execution import wait_for_tx_status
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK
 from src.metrics import metrics
@@ -224,10 +223,11 @@ async def _submit_vote(
     vote: RewardVoteBody,
     signatures: bytes,
 ) -> None:
-    tx_hash = await keeper_contract.update_rewards(vote, signatures)
-    tx_status = await wait_for_tx_status(tx_hash)
+    tx_receipt = await keeper_contract.update_rewards(vote, signatures)
 
-    if tx_status:
-        logger.info('Rewards have been successfully updated. Tx hash: %s', tx_hash)
-    else:
-        logger.error('Rewards transaction failed. Tx hash: %s', tx_hash)
+    if tx_receipt is None:
+        logger.error('Rewards transaction failed')
+        return
+
+    tx_hash = Web3.to_hex(tx_receipt['transactionHash'])
+    logger.info('Rewards have been successfully updated. Tx hash: %s', tx_hash)
