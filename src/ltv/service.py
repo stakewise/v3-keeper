@@ -2,6 +2,8 @@ import logging
 import time
 from decimal import Decimal
 
+from web3.types import BlockNumber
+
 from src.common.app_state import AppState
 from src.common.clients import execution_client
 from src.common.contracts import vault_user_ltv_tracker_contract
@@ -40,7 +42,7 @@ async def process_vault_max_ltv_user() -> None:
     )
 
     # Get max LTV user for vault
-    max_ltv_users = await get_max_ltv_users()
+    max_ltv_users = await get_max_ltv_users(block_number)
 
     if not max_ltv_users:
         logger.info('No max LTV users found. Nothing to update.')
@@ -62,18 +64,18 @@ async def process_vault_max_ltv_user() -> None:
     app_state.ltv_updated_timestamp = current_time
 
 
-async def get_max_ltv_users() -> list[VaultMaxLtvUser]:
-    ostoken_vaults = await graph_get_ostoken_vaults()
+async def get_max_ltv_users(block_number: BlockNumber) -> list[VaultMaxLtvUser]:
+    ostoken_vaults = await graph_get_ostoken_vaults(block_number)
 
     if not ostoken_vaults:
         logger.info('No OsToken vaults found')
         return []
 
     max_ltv_users = []
-    graph_vaults = await graph_get_vaults(vaults=ostoken_vaults)
+    graph_vaults = await graph_get_vaults(vaults=ostoken_vaults, block_number=block_number)
 
     for vault in ostoken_vaults:
-        max_ltv_user_address = await graph_get_vault_max_ltv_allocator(vault)
+        max_ltv_user_address = await graph_get_vault_max_ltv_allocator(vault, block_number)
         if max_ltv_user_address is None:
             logger.warning('No allocators in vault %s', vault)
             continue
