@@ -2,6 +2,8 @@ import logging
 import time
 from decimal import Decimal
 
+from web3 import Web3
+
 from src.common.app_state import AppState
 from src.common.clients import execution_client
 from src.common.contracts import vault_user_ltv_tracker_contract
@@ -106,19 +108,16 @@ async def get_max_ltv_users() -> list[VaultMaxLtvUser]:
 async def handle_max_ltv_user(max_ltv_user: VaultMaxLtvUser) -> None:
     vault = max_ltv_user.vault
     # Update LTV
-    tx = await vault_user_ltv_tracker_contract.update_vault_max_ltv_user(
+    tx_receipt = await vault_user_ltv_tracker_contract.update_vault_max_ltv_user(
         vault, max_ltv_user.address, max_ltv_user.harvest_params
     )
-    logger.info('Update transaction sent, tx hash: %s', tx.hex())
-
-    # Wait for tx receipt
-    logger.info('Waiting for tx receipt')
-    receipt = await execution_client.eth.wait_for_transaction_receipt(tx)
 
     # Check receipt status
-    if not receipt['status']:
-        raise RuntimeError(f'Update tx failed, tx hash: {tx.hex()}')
-    logger.info('Tx confirmed')
+    if tx_receipt is None:
+        raise RuntimeError('Update tx failed')
+
+    tx_hash = Web3.to_hex(tx_receipt['transactionHash'])
+    logger.info('Tx confirmed, tx hash: %s', tx_hash)
 
     # Get LTV after update
     ltv = await vault_user_ltv_tracker_contract.get_vault_max_ltv(

@@ -1,7 +1,5 @@
 import logging
 
-from eth_typing import HexStr
-from hexbytes import HexBytes
 from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
@@ -9,7 +7,7 @@ from web3.types import Wei
 from src.common.accounts import keeper_account
 from src.common.clients import execution_client, ipfs_fetch_client
 from src.common.contracts import keeper_contract
-from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT, NETWORK_CONFIG
+from src.config.settings import NETWORK_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +46,3 @@ async def check_keeper_balance() -> None:
             Web3.from_wei(keeper_min_balance, 'ether'),
             symbol,
         )
-
-
-async def wait_for_tx_status(tx_hash: HexBytes | HexStr) -> int:
-    tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
-        tx_hash, timeout=EXECUTION_TRANSACTION_TIMEOUT
-    )
-
-    return tx_receipt['status']
