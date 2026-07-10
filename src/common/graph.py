@@ -43,6 +43,7 @@ async def check_for_graph_node_sync_to_block(
 async def graph_get_vaults(
     vaults: list[ChecksumAddress] | None = None,
     is_meta_vault: bool | None = None,
+    block_number: BlockNumber | None = None,
 ) -> dict[ChecksumAddress, Vault]:
     """
     Returns mapping from vault address to Vault object
@@ -66,11 +67,17 @@ async def graph_get_vaults(
 
     filters = ['first: $first', 'skip: $skip']
 
+    if block_number is not None:
+        filters.append('block: { number: $block }')
+        params['block'] = block_number
+
     if where_clause:
         filters.append(where_clause)
 
     query = f"""
-        query VaultQuery($first: Int, $skip: Int, $vaults: [String], $isMetaVault: Boolean) {{
+        query VaultQuery(
+            $first: Int, $skip: Int, $vaults: [String], $isMetaVault: Boolean, $block: Int
+        ) {{
             vaults(
                 {', '.join(filters)}
             ) {{
