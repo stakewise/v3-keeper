@@ -84,7 +84,7 @@ async def _check_consensus_nodes() -> None:
 
 
 async def _check_consensus_node(consensus_endpoint: str) -> bool:
-    consensus_client = get_consensus_client([consensus_endpoint])
+    consensus_client = get_consensus_client([consensus_endpoint], retry_timeout=0)
     try:
         syncing = await consensus_client.get_syncing()
         if syncing['data']['is_syncing'] is True:
@@ -137,7 +137,7 @@ async def _check_l2_execution_nodes() -> None:
 
 
 async def _check_execution_node(execution_endpoint: str) -> bool:
-    execution_client = get_execution_client([execution_endpoint])
+    execution_client = get_execution_client([execution_endpoint], retry_timeout=0)
     try:
         syncing = await execution_client.eth.syncing
         if syncing is True:
@@ -182,7 +182,7 @@ async def _check_ipfs_fetch_nodes() -> None:
 
     while not healthy_ipfs_endpoints:
         for endpoint in IPFS_FETCH_ENDPOINTS:
-            client = IpfsFetchClient([endpoint])
+            client = IpfsFetchClient([endpoint], retry_timeout=0)
             try:
                 await client.fetch_json(IPFS_HASH_EXAMPLE)
             except Exception as e:
