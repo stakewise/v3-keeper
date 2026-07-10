@@ -4,15 +4,13 @@ from eth_typing import ChecksumAddress, HexStr
 from web3 import Web3
 from web3.types import BlockNumber
 
-from src.common.clients import execution_client
 from src.common.contracts import (
     LeverageStrategyContract,
     keeper_contract,
     multicall_contract,
-    transaction_gas_wrapper,
 )
+from src.common.transaction import tx_manager
 from src.common.typings import HarvestParams
-from src.config.settings import EXECUTION_TRANSACTION_TIMEOUT
 
 from .typings import ExitRequest
 
@@ -73,7 +71,7 @@ async def claim_exited_assets(
     calls.append((leverage_strategy_contract.address, claim_call))
     try:
         tx_function = multicall_contract.functions.aggregate(calls)
-        tx = await transaction_gas_wrapper(tx_function=tx_function)
+        tx_receipt = await tx_manager.transact(tx_function)
     except Exception as e:
         logger.error(
             'Failed to claim exited assets for leverage position: vault=%s, user=%s %s...',
@@ -85,12 +83,7 @@ async def claim_exited_assets(
 
         return None
 
-    tx_hash = Web3.to_hex(tx)
-    logger.info('Waiting for transaction %s confirmation', tx_hash)
-    tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=EXECUTION_TRANSACTION_TIMEOUT
-    )
-    if not tx_receipt['status']:
+    if tx_receipt is None:
         logger.error(
             'Failed to confirm exited assets claim for leverage position: vault=%s, user=%s...',
             vault,
@@ -98,7 +91,7 @@ async def claim_exited_assets(
         )
         return None
 
-    return tx_hash
+    return Web3.to_hex(tx_receipt['transactionHash'])
 
 
 async def force_enter_exit_queue(
@@ -123,18 +116,13 @@ async def force_enter_exit_queue(
     calls.append((leverage_strategy_contract.address, force_enter_call))
     try:
         tx_function = multicall_contract.functions.aggregate(calls)
-        tx = await transaction_gas_wrapper(tx_function=tx_function)
+        tx_receipt = await tx_manager.transact(tx_function)
     except Exception as e:
         logger.error('Failed to force enter exit queue; vault=%s, user=%s %s: ', vault, user, e)
         logger.exception(e)
         return None
 
-    tx_hash = Web3.to_hex(tx)
-    logger.info('Waiting for transaction %s confirmation', tx_hash)
-    tx_receipt = await execution_client.eth.wait_for_transaction_receipt(
-        tx, timeout=EXECUTION_TRANSACTION_TIMEOUT
-    )
-    if not tx_receipt['status']:
+    if tx_receipt is None:
         logger.error(
             'Failed to confirm force enter exit queue: vault=%s, user=%s...',
             vault,
@@ -142,7 +130,7 @@ async def force_enter_exit_queue(
         )
         return None
 
-    return tx_hash
+    return Web3.to_hex(tx_receipt['transactionHash'])
 
 
 def _encode_update_state_call(

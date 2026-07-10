@@ -7,9 +7,9 @@ import aiohttp
 from aiohttp import ClientSession, ClientTimeout
 from eth_typing import HexStr
 from sw_utils import Oracle, ProtocolConfig
+from web3 import Web3
 
 from src.common.contracts import merkle_distributor_contract
-from src.common.execution import wait_for_tx_status
 from src.common.utils import aiohttp_fetch
 from src.config import settings
 from src.distributor.typings import DistributorRewardVote, DistributorRewardVoteBody
@@ -161,10 +161,11 @@ async def _submit_distributor_rewards_vote(
     vote: DistributorRewardVoteBody,
     signatures: list[HexStr],
 ) -> None:
-    tx_hash = await merkle_distributor_contract.set_rewards_root(vote, signatures)
-    tx_status = await wait_for_tx_status(tx_hash)
+    tx_receipt = await merkle_distributor_contract.set_rewards_root(vote, signatures)
 
-    if tx_status:
-        logger.info('Distributor rewards has been successfully updated. Tx hash: %s', tx_hash)
-    else:
-        logger.error('Distributor rewards transaction failed. Tx hash: %s', tx_hash)
+    if tx_receipt is None:
+        logger.error('Distributor rewards transaction failed')
+        return
+
+    tx_hash = Web3.to_hex(tx_receipt['transactionHash'])
+    logger.info('Distributor rewards has been successfully updated. Tx hash: %s', tx_hash)
