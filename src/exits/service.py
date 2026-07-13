@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import aiohttp
 from aiohttp import ClientSession
 from eth_typing.bls import BLSSignature
-from sw_utils import ValidatorStatus, get_chain_finalized_head
+from sw_utils import ValidatorStatus, get_chain_latest_head
 from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import HexStr
@@ -33,7 +33,7 @@ EXITING_STATUSES = [
 
 
 async def process_exits(protocol_config: ProtocolConfig) -> None:
-    chain_head = await get_chain_finalized_head(
+    chain_head = await get_chain_latest_head(
         consensus_client=consensus_client, slots_per_epoch=NETWORK_CONFIG.SLOTS_PER_EPOCH
     )
 
