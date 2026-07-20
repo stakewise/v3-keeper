@@ -112,12 +112,26 @@ class KeeperContract(ContractWrapper):
     ) -> bool:
         return await self.contract.functions.canHarvest(vault).call(block_identifier=block_number)
 
-    async def get_config_update_event(self) -> EventData | None:
-        to_block = await execution_client.eth.get_block_number()
-        # Start scanning from after the known checkpoint to avoid re-scanning
-        # the entire history on every call.
-        from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
+    async def get_config_update_event(
+        self,
+        from_block: BlockNumber | None = None,
+        to_block: BlockNumber | None = None,
+    ) -> EventData | None:
+        if to_block is None:
+            block = await execution_client.eth.get_block('finalized')
+            to_block = block['number']
 
+        if from_block is not None:
+            # Warm cache: incremental scan of an explicit range — no fallback.
+            return await self._get_last_event(
+                event_name='ConfigUpdated',
+                from_block=from_block,
+                to_block=to_block,
+            )
+
+        # Cold start: scan from after the known checkpoint to avoid re-scanning
+        # the entire history, then fall back to the cached event block.
+        from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
         event = await self._get_last_event(
             event_name='ConfigUpdated',
             from_block=from_block,

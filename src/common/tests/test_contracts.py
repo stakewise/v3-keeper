@@ -20,7 +20,7 @@ class TestGetConfigUpdateEvent:
         ) as mock_last_event, patch('src.common.contracts.execution_client') as mock_client, patch(
             'src.common.contracts.NETWORK_CONFIG'
         ) as mock_config:
-            mock_client.eth.get_block_number = AsyncMock(return_value=BlockNumber(100000))
+            mock_client.eth.get_block = AsyncMock(return_value={'number': BlockNumber(100000)})
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
@@ -52,7 +52,7 @@ class TestGetConfigUpdateEvent:
         ) as mock_client, patch(
             'src.common.contracts.NETWORK_CONFIG'
         ) as mock_config:
-            mock_client.eth.get_block_number = AsyncMock(return_value=BlockNumber(100000))
+            mock_client.eth.get_block = AsyncMock(return_value={'number': BlockNumber(100000)})
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
@@ -78,7 +78,7 @@ class TestGetConfigUpdateEvent:
         ) as mock_client, patch(
             'src.common.contracts.NETWORK_CONFIG'
         ) as mock_config:
-            mock_client.eth.get_block_number = AsyncMock(return_value=BlockNumber(100000))
+            mock_client.eth.get_block = AsyncMock(return_value={'number': BlockNumber(100000)})
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
@@ -103,7 +103,7 @@ class TestGetConfigUpdateEvent:
         ) as mock_client, patch(
             'src.common.contracts.NETWORK_CONFIG'
         ) as mock_config:
-            mock_client.eth.get_block_number = AsyncMock(return_value=BlockNumber(100000))
+            mock_client.eth.get_block = AsyncMock(return_value={'number': BlockNumber(100000)})
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
