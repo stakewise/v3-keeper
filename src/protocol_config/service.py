@@ -9,6 +9,10 @@ from src.protocol_config.typings import OraclesCache
 async def get_protocol_config() -> ProtocolConfig:
     oracles_cache = OraclesCache()
 
+    # Use the finalized block (not the latest head) so the checkpoint can never
+    # advance past a block that could later reorg and drop a ConfigUpdated event.
+    # Tradeoff: oracle-set/threshold changes are observed ~2 epochs late; this
+    # latency is deliberate, as finalized blocks are safe for the checkpoint cache.
     block = await execution_client.eth.get_block('finalized')
     to_block = block['number']
 
