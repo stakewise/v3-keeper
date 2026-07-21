@@ -4,7 +4,7 @@ from eth_typing import BlockNumber
 from web3.types import EventData
 
 from src.protocol_config.service import (
-    get_config_update_event_since_checkpoint,
+    _get_config_update_event_since_checkpoint,
     get_protocol_config,
     ipfs_fetch_client,
     keeper_contract,
@@ -34,7 +34,7 @@ class TestGetConfigUpdateEventSinceCheckpoint:
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
-            result = await get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
+            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
 
         assert result is expected_event
         mock_event.assert_awaited_once_with(
@@ -54,7 +54,7 @@ class TestGetConfigUpdateEventSinceCheckpoint:
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
-            result = await get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
+            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
 
         assert result is cached_event
         assert mock_event.await_args_list == [
@@ -72,7 +72,7 @@ class TestGetConfigUpdateEventSinceCheckpoint:
             mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
             mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
 
-            result = await get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
+            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
 
         assert result is None
 
