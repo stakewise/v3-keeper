@@ -1,5 +1,6 @@
 import random
 from copy import deepcopy
+from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import patch
 
@@ -27,10 +28,10 @@ async def test_early():
         keeper_contract,
         'can_update_rewards',
         return_value=False,
-    ), patch('src.rewards.service._submit_vote') as submit_mock:
-        await process_rewards(
-            get_mocked_protocol_config(oracles_count=5), rewards_cache=RewardsCache()
-        )
+    ), patch('src.rewards.service._submit_vote') as submit_mock, patch.object(
+        RewardsCache(), 'data', {}
+    ):
+        await process_rewards(get_mocked_protocol_config(oracles_count=5))
         submit_mock.assert_not_called()
 
 
@@ -72,10 +73,11 @@ async def test_basic():
         return_value=votes,
     ), patch(
         'src.rewards.service._submit_vote',
-    ) as submit_mock:
+    ) as submit_mock, patch.object(
+        RewardsCache(), 'data', {}
+    ):
         await process_rewards(
             get_mocked_protocol_config(oracles=oracles, rewards_threshold=3),
-            rewards_cache=RewardsCache(),
         )
 
         submit_mock.assert_called_once_with(
@@ -162,35 +164,61 @@ class TestFetchVoteFromOracle:
 
 
 class TestRewardsCache:
-    async def test_rewards_cache(self):
-        cache = RewardsCache(cache_size=2)
-        assert not cache.rewards()
+    """
+    Ordered, stateful test: each method builds on the cache state left by the
+    previous one (pytest runs methods top-down). The class-scoped fixture sets
+    up a clean, size-limited cache once and restores it when the class finishes,
+    so individual methods don't repeat the patching.
+    """
+
+    @pytest.fixture(autouse=True, scope='class')
+    def ctx(self):
+        cache = RewardsCache()
         ts1 = Timestamp(random.randint(100, 10000))
-        vote1 = create_vote(update_timestamp=ts1)
-        cache.update([vote1])
+        ts2 = Timestamp(ts1 + 100)
+        ts3 = Timestamp(ts2 + 100)
+        namespace = SimpleNamespace(
+            cache=cache,
+            vote1=create_vote(update_timestamp=ts1),
+            vote2=create_vote(update_timestamp=ts2),
+            vote3=create_vote(update_timestamp=ts1),
+            vote4=create_vote(update_timestamp=ts1),
+            vote5=create_vote(update_timestamp=ts2),
+            vote6=create_vote(update_timestamp=ts2),
+            vote7=create_vote(update_timestamp=ts3),
+        )
+        namespace.vote8 = deepcopy(namespace.vote7)
+        with patch.object(cache, 'data', {}), patch.object(cache, 'cache_size', 2):
+            yield namespace
 
-        assert cache.rewards() == [[vote1]]
+    async def test_empty_initially(self, ctx):
+        assert not ctx.cache.rewards()
 
-        ts2 = ts1 + 100
-        vote2 = create_vote(update_timestamp=ts2)
-        cache.update([vote2])
-        assert cache.rewards() == [[vote1], [vote2]]
+    async def test_first_vote(self, ctx):
+        ctx.cache.update([ctx.vote1])
+        assert ctx.cache.rewards() == [[ctx.vote1]]
 
-        vote3 = create_vote(update_timestamp=ts1)
-        cache.update([vote3])
-        assert cache.rewards() == [[vote1, vote3], [vote2]]
+    async def test_new_timestamp_bucket(self, ctx):
+        ctx.cache.update([ctx.vote2])
+        assert ctx.cache.rewards() == [[ctx.vote1], [ctx.vote2]]
 
-        vote4 = create_vote(update_timestamp=ts1)
-        vote5 = create_vote(update_timestamp=ts2)
-        vote6 = create_vote(update_timestamp=ts2)
-        cache.update([vote4, vote5, vote6])
-        assert cache.rewards() == [[vote1, vote3, vote4], [vote2, vote5, vote6]]
+    async def test_same_timestamp_appends(self, ctx):
+        ctx.cache.update([ctx.vote3])
+        assert ctx.cache.rewards() == [[ctx.vote1, ctx.vote3], [ctx.vote2]]
 
-        ts3 = ts2 + 100
-        vote7 = create_vote(update_timestamp=ts3)
-        vote8 = deepcopy(vote7)
-        cache.update([vote7, vote8])
-        assert cache.rewards() == [[vote2, vote5, vote6], [vote7]]
+    async def test_batch_update(self, ctx):
+        ctx.cache.update([ctx.vote4, ctx.vote5, ctx.vote6])
+        assert ctx.cache.rewards() == [
+            [ctx.vote1, ctx.vote3, ctx.vote4],
+            [ctx.vote2, ctx.vote5, ctx.vote6],
+        ]
 
-        cache.clear()
-        assert not cache.rewards()
+    async def test_evicts_oldest_and_dedups(self, ctx):
+        # cache_size is 2: adding a third timestamp evicts the oldest bucket,
+        # and the duplicate vote8 is not stored twice.
+        ctx.cache.update([ctx.vote7, ctx.vote8])
+        assert ctx.cache.rewards() == [[ctx.vote2, ctx.vote5, ctx.vote6], [ctx.vote7]]
+
+    async def test_clear(self, ctx):
+        ctx.cache.clear()
+        assert not ctx.cache.rewards()

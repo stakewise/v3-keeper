@@ -6,7 +6,7 @@ from sw_utils import InterruptHandler
 
 import src
 from src.common.clients import close_clients, setup_clients
-from src.common.execution import get_keeper_balance, get_protocol_config
+from src.common.execution import get_keeper_balance
 from src.common.startup_check import startup_checks
 from src.config.settings import (
     FORCE_EXITS_SUPPORTED_NETWORKS,
@@ -30,7 +30,8 @@ from src.force_exit.service import process_force_exits
 from src.ltv.service import process_vault_max_ltv_user
 from src.metrics import metrics, metrics_server
 from src.price.service import process_layer_two_oseth_price
-from src.rewards.service import RewardsCache, process_rewards
+from src.protocol_config.service import get_protocol_config
+from src.rewards.service import process_rewards
 
 logging.basicConfig(
     format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
@@ -62,7 +63,6 @@ async def main() -> None:
 
 
 async def start_keeper() -> None:
-    rewards_cache = RewardsCache()
     with InterruptHandler() as interrupt_handler:
         while not interrupt_handler.exit:
             start_time = time.time()
@@ -77,7 +77,6 @@ async def start_keeper() -> None:
                 tasks = [
                     process_rewards(
                         protocol_config=protocol_config,
-                        rewards_cache=rewards_cache,
                     ),
                     process_exits(
                         protocol_config=protocol_config,

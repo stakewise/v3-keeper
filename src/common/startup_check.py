@@ -6,7 +6,7 @@ from sw_utils import IpfsFetchClient
 
 from src.common.accounts import keeper_account
 from src.common.clients import get_consensus_client, get_execution_client, graph_client
-from src.common.execution import check_keeper_balance, get_protocol_config
+from src.common.execution import check_keeper_balance
 from src.common.graph import check_for_graph_node_sync_to_block
 from src.common.utils import aiohttp_fetch
 from src.config.settings import (
@@ -23,6 +23,7 @@ from src.config.settings import (
     SKIP_OSETH_PRICE_UPDATE,
     SKIP_UPDATE_LTV,
 )
+from src.protocol_config.service import get_protocol_config
 
 logger = logging.getLogger(__name__)
 

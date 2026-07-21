@@ -1,32 +1,13 @@
 import logging
 
-from sw_utils import ProtocolConfig, build_protocol_config
 from web3 import Web3
 from web3.types import Wei
 
 from src.common.accounts import keeper_account
-from src.common.clients import execution_client, ipfs_fetch_client
-from src.common.contracts import keeper_contract
+from src.common.clients import execution_client
 from src.config.settings import NETWORK_CONFIG
 
 logger = logging.getLogger(__name__)
-
-
-async def get_protocol_config() -> ProtocolConfig:
-    event = await keeper_contract.get_config_update_event()
-    if not event:
-        raise ValueError('Failed to fetch IPFS hash of oracles config')
-
-    # fetch IPFS record
-    ipfs_hash = event['args']['configIpfsHash']
-    config = await ipfs_fetch_client.fetch_json(ipfs_hash)
-
-    rewards_threshold = await keeper_contract.get_rewards_threshold()
-
-    return build_protocol_config(
-        config_data=config,
-        rewards_threshold=rewards_threshold,
-    )
 
 
 async def get_keeper_balance() -> Wei:

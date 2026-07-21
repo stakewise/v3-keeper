@@ -10,6 +10,7 @@ from sw_utils import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import Timestamp
 
+from src.common.app_state import Singleton
 from src.common.contracts import keeper_contract
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK
@@ -22,16 +23,16 @@ REWARD_VOTE_URL_PATH = '/'
 DEFAULT_CACHE_SIZE = 100
 
 
-class RewardsCache:
+class RewardsCache(metaclass=Singleton):
     """
     Cache solves the problem of oracle synchronization.
     On some networks, oracles fail to synchronize within a specific epoch.
     Storing votes in the cache makes it easier to catch up with synchronization.
     """
 
-    def __init__(self, cache_size: int = DEFAULT_CACHE_SIZE) -> None:
+    def __init__(self) -> None:
         self.data: dict[Timestamp, list[RewardVote]] = {}
-        self.cache_size = cache_size
+        self.cache_size = DEFAULT_CACHE_SIZE
 
     def update(self, votes: list[RewardVote]) -> None:
         for vote in votes:
@@ -54,7 +55,7 @@ class RewardsCache:
         self.data = {}
 
 
-async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: RewardsCache) -> None:
+async def process_rewards(protocol_config: ProtocolConfig) -> None:
     if not await keeper_contract.can_update_rewards():
         return
 
@@ -70,10 +71,11 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
         logger.info('No votes with nonce %d', current_nonce)
         return
 
+    rewards_cache = RewardsCache()
     rewards_cache.update(votes)
 
     timestamp_votes, winner = _find_earliest_winner(
-        rewards_cache=rewards_cache, rewards_threshold=protocol_config.rewards_threshold
+        cache=rewards_cache, rewards_threshold=protocol_config.rewards_threshold
     )
     if winner is None or timestamp_votes is None:
         logger.warning('Not enough oracle votes to update rewards, skipping update...')
@@ -106,9 +108,9 @@ async def process_rewards(protocol_config: ProtocolConfig, rewards_cache: Reward
 
 
 def _find_earliest_winner(
-    rewards_cache: RewardsCache, rewards_threshold: int
+    cache: RewardsCache, rewards_threshold: int
 ) -> tuple[Iterable[RewardVote], RewardVoteBody] | tuple[None, None]:
-    for timestamp_votes in rewards_cache.rewards():
+    for timestamp_votes in cache.rewards():
         counter = Counter([vote.body for vote in timestamp_votes])
         winner, winner_vote_count = counter.most_common(1)[0]
 
