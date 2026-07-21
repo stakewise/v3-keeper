@@ -1,9 +1,32 @@
 from eth_typing import BlockNumber
 from sw_utils import ProtocolConfig, build_protocol_config
+from web3.types import EventData
 
 from src.common.clients import execution_client, ipfs_fetch_client
 from src.common.contracts import keeper_contract
+from src.config.settings import NETWORK_CONFIG
 from src.protocol_config.typings import OraclesCache
+
+
+async def get_config_update_event_since_checkpoint(to_block: BlockNumber) -> EventData | None:
+    """
+    Cold-cache lookup. Scans from after the known checkpoint to avoid re-scanning
+    the entire history, and falls back to the cached event block when no newer
+    ConfigUpdated event exists.
+    """
+    from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
+    event = await keeper_contract.get_config_update_event(
+        from_block=from_block,
+        to_block=to_block,
+    )
+    if event is not None:
+        return event
+
+    cached_block = NETWORK_CONFIG.CONFIG_UPDATED_EVENT_BLOCK
+    return await keeper_contract.get_config_update_event(
+        from_block=cached_block,
+        to_block=cached_block,
+    )
 
 
 async def get_protocol_config() -> ProtocolConfig:
@@ -18,7 +41,7 @@ async def get_protocol_config() -> ProtocolConfig:
 
     if oracles_cache.checkpoint_block is None:
         # Cold cache: full lookup with checkpoint scan and fallback.
-        event = await keeper_contract.get_config_update_event(to_block=to_block)
+        event = await get_config_update_event_since_checkpoint(to_block=to_block)
         if not event:
             raise ValueError('Failed to fetch IPFS hash of oracles config')
         config = await ipfs_fetch_client.fetch_json(event['args']['configIpfsHash'])
