@@ -87,7 +87,7 @@ class TestGetProtocolConfig:
 
     async def test_cold_cache_fetches_and_populates(self):
         with patch('src.protocol_config.service.execution_client') as mock_client, patch(
-            'src.protocol_config.service.get_config_update_event_since_checkpoint',
+            'src.protocol_config.service._get_config_update_event_since_checkpoint',
             new_callable=AsyncMock,
         ) as mock_event, patch.object(
             keeper_contract, 'get_rewards_threshold', new_callable=AsyncMock, return_value=7
