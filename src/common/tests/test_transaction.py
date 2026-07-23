@@ -385,9 +385,7 @@ def _patch(
     account.address = '0x' + '11' * 20
     with mock.patch('src.common.transaction.execution_client', execution_client), mock.patch(
         'src.common.transaction.keeper_account', account
-    ), mock.patch('src.common.transaction.gas_manager', gas_manager), mock.patch(
-        'src.common.transaction._is_alchemy_used', return_value=False
-    ):
+    ), mock.patch('src.common.transaction.gas_manager', gas_manager):
         yield
 
 

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from math import ceil
-from urllib.parse import urlparse
 
 from hexbytes import HexBytes
 from web3 import Web3
@@ -11,19 +10,14 @@ from web3.types import Nonce, TxParams, TxReceipt, Wei
 
 from src.common.accounts import keeper_account
 from src.common.clients import execution_client, gas_manager
-from src.config.networks import HOODI
 from src.config.settings import (
     ATTEMPTS_WITH_DEFAULT_GAS,
-    EXECUTION_ENDPOINTS,
     EXECUTION_TRANSACTION_TIMEOUT,
     MAX_FEE_PER_GAS_GWEI,
-    NETWORK,
     NETWORK_CONFIG,
 )
 
 logger = logging.getLogger(__name__)
-
-ALCHEMY_DOMAIN = '.alchemy.com'
 
 # the node requires both `maxFeePerGas` and `maxPriorityFeePerGas` to increase by at
 # least 10% to replace a pending transaction. Use a bit more for headroom.
@@ -167,7 +161,7 @@ class TransactionManager:
             # queuing a new one behind it (skip the default-gas attempts)
             logger.info('Found pending transaction at nonce %d, replacing it', latest_nonce)
             tx_hash = await self._submit_high_priority(tx_function, tx_params, latest_nonce)
-        elif high_priority or _skip_default_gas():
+        elif high_priority:
             tx_hash = await self._submit_high_priority(tx_function, tx_params, latest_nonce)
         else:
             tx_hash = await self._submit_default_gas(tx_function, tx_params, latest_nonce)
@@ -261,19 +255,6 @@ class TransactionManager:
         if not tx_receipt['status']:
             return None
         return tx_receipt
-
-
-def _is_alchemy_used() -> bool:
-    for endpoint in EXECUTION_ENDPOINTS:
-        domain = urlparse(endpoint).netloc
-        if domain.lower().endswith(ALCHEMY_DOMAIN):
-            return True
-    return False
-
-
-def _skip_default_gas() -> bool:
-    # Alchemy does not support eth_maxPriorityFeePerGas for Hoodi, go straight to high priority
-    return NETWORK == HOODI and _is_alchemy_used()
 
 
 # Node rejection messages (lowercased substrings) that a fee bump can clear. The
