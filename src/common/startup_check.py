@@ -14,13 +14,8 @@ from src.config.settings import (
     EXECUTION_ENDPOINTS,
     FORCE_EXITS_SUPPORTED_NETWORKS,
     IPFS_FETCH_ENDPOINTS,
-    L2_EXECUTION_ENDPOINTS,
     NETWORK,
-    OSETH_PRICE_SUPPORTED_NETWORKS,
-    PRICE_MAX_WAITING_TIME,
-    PRICE_UPDATE_INTERVAL,
     SKIP_FORCE_EXITS,
-    SKIP_OSETH_PRICE_UPDATE,
     SKIP_UPDATE_LTV,
 )
 from src.protocol_config.service import get_protocol_config
@@ -37,13 +32,6 @@ async def startup_checks() -> None:
     await _check_consensus_nodes()
     await _check_execution_nodes()
 
-    if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
-        await _check_l2_execution_nodes()
-        if PRICE_MAX_WAITING_TIME >= PRICE_UPDATE_INTERVAL:
-            raise ValueError(
-                f'PRICE_MAX_WAITING_TIME ({PRICE_MAX_WAITING_TIME}) should be less than '
-                f'PRICE_UPDATE_INTERVAL ({PRICE_UPDATE_INTERVAL})'
-            )
     if _is_graph_used():
         await check_for_graph_node_sync_to_block('finalized')
         logger.info('Connected to graph node at %s.', graph_client.endpoint)
@@ -121,19 +109,6 @@ async def _check_execution_nodes() -> None:
         if any(nodes_ready):
             return
         logger.warning('Failed to connect to execution nodes. Retrying in 10 seconds...')
-        await asyncio.sleep(10)
-
-
-async def _check_l2_execution_nodes() -> None:
-    if not L2_EXECUTION_ENDPOINTS:
-        logger.warning('L2_EXECUTION_ENDPOINTS is empty, skipping l2 execution nodes check.')
-        return
-
-    while True:
-        nodes_ready = [await _check_execution_node(endpoint) for endpoint in L2_EXECUTION_ENDPOINTS]
-        if any(nodes_ready):
-            return
-        logger.warning('Failed to connect to l2 execution nodes. Retrying in 10 seconds...')
         await asyncio.sleep(10)
 
 
