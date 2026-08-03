@@ -16,11 +16,9 @@ from src.config.settings import (
     METRICS_PORT,
     NETWORK,
     NETWORK_CONFIG,
-    OSETH_PRICE_SUPPORTED_NETWORKS,
     SENTRY_DSN,
     SKIP_DISTRIBUTOR_REWARDS,
     SKIP_FORCE_EXITS,
-    SKIP_OSETH_PRICE_UPDATE,
     SKIP_UPDATE_LTV,
     WEB3_LOG_LEVEL,
 )
@@ -29,7 +27,6 @@ from src.exits.service import process_exits
 from src.force_exit.service import process_force_exits
 from src.ltv.service import process_vault_max_ltv_user
 from src.metrics import metrics, metrics_server
-from src.price.service import process_layer_two_oseth_price
 from src.protocol_config.service import get_protocol_config
 from src.rewards.service import process_rewards
 
@@ -90,10 +87,6 @@ async def start_keeper() -> None:
                             protocol_config=protocol_config,
                         )
                     )
-
-                # update price
-                if NETWORK in OSETH_PRICE_SUPPORTED_NETWORKS and not SKIP_OSETH_PRICE_UPDATE:
-                    tasks.append(process_layer_two_oseth_price())
 
                 # force position exits
                 if NETWORK in FORCE_EXITS_SUPPORTED_NETWORKS and not SKIP_FORCE_EXITS:

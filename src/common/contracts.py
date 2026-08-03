@@ -14,14 +14,8 @@ from web3.types import EventData, TxReceipt, Wei
 from src.common.clients import execution_client
 from src.common.transaction import tx_manager
 from src.common.typings import HarvestParams
-from src.config.settings import (
-    EVENTS_CONCURRENCY,
-    EVENTS_RANGE_SEC,
-    NETWORK_CONFIG,
-    PRICE_NETWORK_CONFIG,
-)
+from src.config.settings import EVENTS_CONCURRENCY, EVENTS_RANGE_SEC, NETWORK_CONFIG
 from src.distributor.typings import DistributorRewardVoteBody
-from src.price.clients import l2_execution_client
 from src.rewards.typings import RewardVoteBody
 
 logger = logging.getLogger(__name__)
@@ -163,14 +157,6 @@ class MerkleDistributorContract(ContractWrapper):
         return await tx_manager.transact(tx_function)
 
 
-class PriceFeedContract(ContractWrapper):
-    abi_path = 'abi/IPriceFeed.json'
-
-
-class PriceFeedSenderContract(ContractWrapper):
-    abi_path = 'abi/IPriceFeedSender.json'
-
-
 class LeverageStrategyContract(ContractWrapper):
     abi_path = 'abi/ILeverageStrategy.json'
 
@@ -286,16 +272,3 @@ async def get_leverage_strategy_contract(proxy: ChecksumAddress) -> LeverageStra
     return LeverageStrategyContract(
         address=leverage_strategy_address,
     )
-
-
-if PRICE_NETWORK_CONFIG is not None:
-    target_price_feed_contract = PriceFeedContract(
-        address=PRICE_NETWORK_CONFIG.TARGET_PRICE_FEED_CONTRACT_ADDRESS,
-        client=l2_execution_client,
-    )
-    price_feed_sender_contract = PriceFeedSenderContract(
-        PRICE_NETWORK_CONFIG.PRICE_FEED_SENDER_CONTRACT_ADDRESS
-    )
-else:
-    target_price_feed_contract = None
-    price_feed_sender_contract = None
