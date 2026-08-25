@@ -55,7 +55,6 @@ IPFS_FETCH_ENDPOINTS: list[str] = config(
             'https://gateway.pinata.cloud',
             'https://stakewise.myfilebase.com',
             'https://stakewise-ipfs.quicknode-ipfs.com',
-            'https://ipfs.io',
             'https://ipfs.filebase.io',
         ]
     ),
