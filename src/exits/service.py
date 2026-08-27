@@ -2,7 +2,6 @@ import asyncio
 import itertools
 import logging
 from collections import defaultdict
-from collections.abc import Iterator
 from urllib.parse import urljoin
 
 import aiohttp
@@ -12,12 +11,13 @@ from py_ecc.bls import G2ProofOfPossession
 from sw_utils import ValidatorStatus, get_chain_latest_head, is_valid_exit_signature
 from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
-from web3.types import ChecksumAddress, HexStr
+from web3.types import HexStr
 
 from src.common.clients import consensus_client
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.exits.crypto import reconstruct_shared_bls_signature
+from src.exits.typings import ValidatorExitShare
 from src.metrics import metrics
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
 
 async def _process_validator_exit_shares(
     validator_index: int,
-    shares: dict[int, BLSSignature],
+    shares: list[ValidatorExitShare],
     protocol_config: ProtocolConfig,
     public_key: BLSPubkey | None,
 ) -> bool:
@@ -100,7 +100,11 @@ async def _process_validator_exit_shares(
         )
         return False
 
-    if len(shares) < protocol_config.exit_signature_recover_threshold:
+    signatures: dict[int, BLSSignature] = {}
+    for share in shares:
+        signatures[share.share_index] = share.exit_signature_share
+
+    if len(signatures) < protocol_config.exit_signature_recover_threshold:
         logger.warning(
             'Not enough exit signature shares for validator %s, skipping...', validator_index
         )
@@ -109,7 +113,7 @@ async def _process_validator_exit_shares(
     exit_signature = await asyncio.to_thread(
         _recover_exit_signature,
         validator_index=validator_index,
-        shares=shares,
+        shares=signatures,
         threshold=protocol_config.exit_signature_recover_threshold,
         public_key=public_key,
         oracles=protocol_config.oracles,
@@ -126,15 +130,19 @@ async def _process_validator_exit_shares(
     return submitted
 
 
-async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, dict[int, BLSSignature]]:
+async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
     async with ClientSession() as session:
         results = await asyncio.gather(
-            *(_fetch_exit_shares_from_oracle(session=session, oracle=oracle) for oracle in oracles),
+            *[
+                _fetch_exit_shares_from_oracle(
+                    session=session, oracle=oracle, oracle_index=oracle_index
+                )
+                for oracle_index, oracle in enumerate(oracles)
+            ],
             return_exceptions=True,
         )
-
-    validator_exits: dict[int, dict[int, BLSSignature]] = defaultdict(dict)
-    for oracle_index, result in enumerate(results):
+    validator_exits = defaultdict(list)
+    for result in results:
         if isinstance(result, Exception):
             logger.warning(result)
             continue
@@ -142,18 +150,19 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, dict[int, B
             # Re-raise system-exiting exceptions
             raise result
 
-        for validator_index, share in result.items():
-            validator_exits[validator_index][oracle_index] = share
+        if result:
+            for validator_exit in result:
+                validator_exits[validator_exit.validator_index].append(validator_exit)
 
     return validator_exits
 
 
 async def _fetch_exit_shares_from_oracle(
-    session: ClientSession, oracle: Oracle
-) -> dict[int, BLSSignature]:
+    session: ClientSession, oracle: Oracle, oracle_index: int
+) -> list[ValidatorExitShare]:
     results = await asyncio.gather(
         *(
-            _fetch_exit_shares_from_endpoint(session, oracle, endpoint)
+            _fetch_exit_shares_from_endpoint(session, oracle, endpoint, oracle_index)
             for endpoint in oracle.endpoints
         ),
         return_exceptions=True,
@@ -167,18 +176,19 @@ async def _fetch_exit_shares_from_oracle(
             raise result
         if result:
             return result
-    return {}
+    return []
 
 
 async def _fetch_exit_shares_from_endpoint(
-    session: ClientSession, oracle: Oracle, endpoint: str
-) -> dict[int, BLSSignature]:
+    session: ClientSession, oracle: Oracle, endpoint: str, oracle_index: int
+) -> list[ValidatorExitShare]:
     url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
-    exits: dict[int, BLSSignature] = {}
+    exits: list[ValidatorExitShare] = []
     if not data:
-        return exits
+        return []
 
+    seen_validator_indexes: set[int] = set()
     duplicates_found = False
     for exit_data in data:
         for key in ['index', 'exit_signature_share']:
@@ -197,57 +207,31 @@ async def _fetch_exit_shares_from_endpoint(
                 'Malformed exit signature share in oracle response',
                 extra={'oracle': oracle.address, 'validator_index': validator_index},
             )
-            _count_invalid_share(oracle.address)
+            metrics.invalid_exit_shares.labels(network=NETWORK, oracle=oracle.address).inc()
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
-        if validator_index in exits:
+        if validator_index in seen_validator_indexes:
             duplicates_found = True
             continue
-        exits[validator_index] = share
+        seen_validator_indexes.add(validator_index)
+
+        exits.append(
+            ValidatorExitShare(
+                validator_index=validator_index,
+                exit_signature_share=share,
+                share_index=oracle_index,
+            )
+        )
 
     if duplicates_found:
         logger.warning(
             'Duplicate validator exit shares in oracle response', extra={'oracle': oracle.address}
         )
-        _count_invalid_share(oracle.address)
+        metrics.invalid_exit_shares.labels(network=NETWORK, oracle=oracle.address).inc()
 
     metrics.processed_exits.labels(network=NETWORK).inc(len(exits))
 
     return exits
-
-
-def _count_invalid_share(oracle_address: ChecksumAddress) -> None:
-    metrics.invalid_exit_shares.labels(network=NETWORK, oracle=oracle_address).inc()
-
-
-def _share_subsets(share_indexes: list[int], threshold: int) -> Iterator[tuple[int, ...]]:
-    # Leave-k-out search, largest subsets first: the full share set is tried first (so a
-    # single bad oracle is found by the very next size down), and every combination of size
-    # >= threshold is eventually tried, so the search is complete. For a single bad oracle
-    # this terminates in O(N) attempts instead of enumerating all size-threshold subsets.
-    for size in range(len(share_indexes), threshold - 1, -1):
-        yield from itertools.combinations(share_indexes, size)
-
-
-def _reconstruct_and_verify(
-    validator_index: int, public_key: BLSPubkey, shares: dict[int, BLSSignature]
-) -> BLSSignature | None:
-    try:
-        candidate_signature = reconstruct_shared_bls_signature(shares)
-    except ValueError as e:
-        # A non-curve-point share (e.g. malformed bytes with a valid length) makes py_ecc's
-        # point decompression raise instead of returning False; treat it the same as a failed
-        # verification so leave-k-out excludes it naturally.
-        logger.debug(
-            'Failed to reconstruct exit signature for validator %s from shares %s: %s',
-            validator_index,
-            sorted(shares),
-            e,
-        )
-        return None
-    if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
-        return None
-    return candidate_signature
 
 
 def _recover_exit_signature(
@@ -258,28 +242,53 @@ def _recover_exit_signature(
     oracles: list[Oracle],
 ) -> BLSSignature | None:
     share_indexes = sorted(shares)
+    attempts = 0
 
-    for combination in itertools.islice(
-        _share_subsets(share_indexes, threshold), MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS
-    ):
-        subset = {index: shares[index] for index in combination}
-        candidate_signature = _reconstruct_and_verify(validator_index, public_key, subset)
-        if candidate_signature is None:
-            continue
+    # Leave-k-out search, largest subsets first: the full share set is tried first (so a
+    # single bad oracle is found by the very next size down), and every combination of size
+    # >= threshold is eventually tried, so the search is complete. For a single bad oracle
+    # this terminates in O(N) attempts instead of enumerating all size-threshold subsets.
+    for size in range(len(share_indexes), threshold - 1, -1):
+        for combination in itertools.combinations(share_indexes, size):
+            attempts += 1
+            if attempts > MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS:
+                logger.error(
+                    'Aborted exit signature recovery for validator %s after %s attempts',
+                    validator_index,
+                    MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS,
+                )
+                return None
 
-        excluded_addresses = [
-            oracles[index].address for index in share_indexes if index not in combination
-        ]
-        if excluded_addresses:
-            logger.warning(
-                'Recovered valid exit signature for validator %s, excluding shares '
-                'from oracles %s',
-                validator_index,
-                excluded_addresses,
-            )
-            for address in excluded_addresses:
-                _count_invalid_share(address)
-        return candidate_signature
+            subset = {index: shares[index] for index in combination}
+            try:
+                candidate_signature = reconstruct_shared_bls_signature(subset)
+            except ValueError as e:
+                # A non-curve-point share (e.g. malformed bytes with a valid length) makes
+                # py_ecc's point decompression raise instead of returning False; treat it the
+                # same as a failed verification so leave-k-out excludes it naturally.
+                logger.debug(
+                    'Failed to reconstruct exit signature for validator %s from shares %s: %s',
+                    validator_index,
+                    combination,
+                    e,
+                )
+                continue
+            if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
+                continue
+
+            excluded_addresses = [
+                oracles[index].address for index in share_indexes if index not in combination
+            ]
+            if excluded_addresses:
+                logger.warning(
+                    'Recovered valid exit signature for validator %s, excluding shares '
+                    'from oracles %s',
+                    validator_index,
+                    excluded_addresses,
+                )
+                for address in excluded_addresses:
+                    metrics.invalid_exit_shares.labels(network=NETWORK, oracle=address).inc()
+            return candidate_signature
 
     logger.error(
         'Failed to recover a valid exit signature for validator %s from %s shares',

@@ -26,6 +26,7 @@ from src.exits.tests.factories import (
     create_validator_data,
     poison_exit_share,
 )
+from src.exits.typings import ValidatorExitShare
 from src.metrics import metrics
 
 CHAIN_HEAD = ChainHead(
@@ -59,9 +60,9 @@ async def test_one_poisoned_share_recovered_from_honest_subset(caplog):
     setup = create_threshold_signature_setup(
         validator_index=validator_index, oracles_count=5, threshold=4
     )
-    shares = create_exit_shares(setup, share_indexes=[0, 1, 2, 3])
-    shares[4] = poison_exit_share(setup, share_index=4)
-    validator_exits = {validator_index: shares}
+    honest_shares = create_exit_shares(setup, share_indexes=[0, 1, 2, 3])
+    poisoned_share = poison_exit_share(setup, share_index=4)
+    validator_exits = {validator_index: honest_shares + [poisoned_share]}
     validators_data = [create_validator_data(validator_index, setup.public_key, 'active_ongoing')]
 
     with caplog.at_level(logging.WARNING):
@@ -81,9 +82,13 @@ async def test_non_curve_share_recovered_from_honest_subset(caplog):
     setup = create_threshold_signature_setup(
         validator_index=validator_index, oracles_count=5, threshold=4
     )
-    shares = create_exit_shares(setup, share_indexes=[1, 2, 3, 4])
-    shares[0] = BLSSignature(bytes([0x00]) + random.randbytes(95))
-    validator_exits = {validator_index: shares}
+    honest_shares = create_exit_shares(setup, share_indexes=[1, 2, 3, 4])
+    non_curve_share = ValidatorExitShare(
+        validator_index=validator_index,
+        exit_signature_share=BLSSignature(bytes([0x00]) + random.randbytes(95)),
+        share_index=0,
+    )
+    validator_exits = {validator_index: honest_shares + [non_curve_share]}
     validators_data = [create_validator_data(validator_index, setup.public_key, 'active_ongoing')]
 
     with caplog.at_level(logging.WARNING):
@@ -103,10 +108,12 @@ async def test_two_poisoned_shares_not_recoverable(caplog):
     setup = create_threshold_signature_setup(
         validator_index=validator_index, oracles_count=5, threshold=4
     )
-    shares = create_exit_shares(setup, share_indexes=[0, 1, 2])
-    shares[3] = poison_exit_share(setup, share_index=3)
-    shares[4] = poison_exit_share(setup, share_index=4)
-    validator_exits = {validator_index: shares}
+    honest_shares = create_exit_shares(setup, share_indexes=[0, 1, 2])
+    poisoned_shares = [
+        poison_exit_share(setup, share_index=3),
+        poison_exit_share(setup, share_index=4),
+    ]
+    validator_exits = {validator_index: honest_shares + poisoned_shares}
     validators_data = [create_validator_data(validator_index, setup.public_key, 'active_ongoing')]
 
     with caplog.at_level(logging.ERROR):
@@ -125,6 +132,25 @@ async def test_below_threshold_not_submitted():
         validator_index=validator_index, oracles_count=5, threshold=4
     )
     validator_exits = {validator_index: create_exit_shares(setup, share_indexes=[0, 1, 2])}
+    validators_data = [create_validator_data(validator_index, setup.public_key, 'active_ongoing')]
+
+    submit_mock = await _run_process_exits(protocol_config, validator_exits, validators_data)
+
+    submit_mock.assert_not_called()
+
+
+async def test_duplicate_share_index_not_counted_toward_threshold():
+    validator_index = 104
+    protocol_config = get_mocked_protocol_config(
+        oracles_count=5, exit_signature_recover_threshold=4
+    )
+    setup = create_threshold_signature_setup(
+        validator_index=validator_index, oracles_count=5, threshold=4
+    )
+    # 4 shares, but two of them share the same share_index (same oracle) so only 3 are distinct
+    shares = create_exit_shares(setup, share_indexes=[0, 1, 2])
+    shares.append(create_exit_shares(setup, share_indexes=[2])[0])
+    validator_exits = {validator_index: shares}
     validators_data = [create_validator_data(validator_index, setup.public_key, 'active_ongoing')]
 
     submit_mock = await _run_process_exits(protocol_config, validator_exits, validators_data)
@@ -190,7 +216,7 @@ async def test_validator_exit_failure_isolated_from_other_validators(caplog):
     protocol_config = get_mocked_protocol_config(
         oracles_count=5, exit_signature_recover_threshold=4
     )
-    validator_exits = {111: {}, 112: {}}
+    validator_exits = {111: [], 112: []}
     validators_data = [
         {
             'index': '111',
@@ -231,10 +257,12 @@ class TestFetchExitSharesFromEndpoint:
             logging.WARNING
         ):
             shares = await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=2
             )
 
-        assert shares == {5: setup.shares[0]}
+        assert len(shares) == 1
+        assert shares[0].validator_index == 5
+        assert shares[0].share_index == 2
         assert 'Duplicate' in caplog.text
 
     async def test_malformed_share_rejects_whole_response(self, client_session, caplog):
@@ -246,7 +274,7 @@ class TestFetchExitSharesFromEndpoint:
             logging.WARNING
         ), pytest.raises(RuntimeError):
             await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
             )
 
         assert 'Malformed' in caplog.text
@@ -289,7 +317,7 @@ class TestRecoverExitSignature:
         )
         shares = dict(setup.shares)
         for share_index in (3, 4):
-            shares[share_index] = poison_exit_share(setup, share_index)
+            shares[share_index] = poison_exit_share(setup, share_index).exit_signature_share
 
         with caplog.at_level(logging.ERROR):
             recovered = _recover_exit_signature(
@@ -312,7 +340,7 @@ class TestRecoverExitSignature:
             oracles_count=4, exit_signature_recover_threshold=4
         )
         shares = dict(setup.shares)
-        shares[3] = poison_exit_share(setup, share_index=3)
+        shares[3] = poison_exit_share(setup, share_index=3).exit_signature_share
 
         with caplog.at_level(logging.ERROR), patch(
             'src.exits.service.reconstruct_shared_bls_signature',
@@ -370,7 +398,7 @@ class TestRecoverExitSignature:
             oracles_count=5, exit_signature_recover_threshold=4
         )
         shares = dict(setup.shares)
-        shares[0] = poison_exit_share(setup, share_index=0)
+        shares[0] = poison_exit_share(setup, share_index=0).exit_signature_share
         poisoned_address = protocol_config.oracles[0].address
 
         with caplog.at_level(logging.WARNING), patch.object(
@@ -398,7 +426,7 @@ class TestRecoverExitSignature:
         )
         shares = dict(setup.shares)
         for share_index in (3, 4):
-            shares[share_index] = poison_exit_share(setup, share_index)
+            shares[share_index] = poison_exit_share(setup, share_index).exit_signature_share
 
         with caplog.at_level(logging.ERROR), patch(
             'src.exits.service.MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS', 1
@@ -412,12 +440,12 @@ class TestRecoverExitSignature:
             )
 
         assert recovered is None
-        assert 'Failed to recover a valid exit signature' in caplog.text
+        assert 'Aborted' in caplog.text
 
 
 async def _run_process_exits(
     protocol_config: ProtocolConfig,
-    validator_exits: dict[int, dict[int, BLSSignature]],
+    validator_exits: dict[int, list[ValidatorExitShare]],
     validators_data: list[dict],
 ) -> AsyncMock:
     with patch('src.exits.service.get_chain_latest_head', return_value=CHAIN_HEAD), patch(

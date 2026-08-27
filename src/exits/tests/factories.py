@@ -9,6 +9,7 @@ from sw_utils import get_exit_message_signing_root
 from web3 import Web3
 
 from src.config.settings import NETWORK_CONFIG
+from src.exits.typings import ValidatorExitShare
 
 
 @dataclass
@@ -49,15 +50,27 @@ def create_threshold_signature_setup(
 
 def create_exit_shares(
     setup: ThresholdSignatureSetup, share_indexes: list[int]
-) -> dict[int, BLSSignature]:
-    return {share_index: setup.shares[share_index] for share_index in share_indexes}
+) -> list[ValidatorExitShare]:
+    return [
+        ValidatorExitShare(
+            validator_index=setup.validator_index,
+            exit_signature_share=setup.shares[share_index],
+            share_index=share_index,
+        )
+        for share_index in share_indexes
+    ]
 
 
-def poison_exit_share(setup: ThresholdSignatureSetup, share_index: int) -> BLSSignature:
+def poison_exit_share(setup: ThresholdSignatureSetup, share_index: int) -> ValidatorExitShare:
     """Signs the same share secret key over a different validator's exit message,
     simulating a well-formed share that was signed over the wrong content."""
     wrong_message = _exit_signing_root(setup.validator_index + 1)
-    return BLSSignature(bls.Sign(setup.share_secret_keys[share_index], wrong_message))
+    poisoned_signature = BLSSignature(bls.Sign(setup.share_secret_keys[share_index], wrong_message))
+    return ValidatorExitShare(
+        validator_index=setup.validator_index,
+        exit_signature_share=poisoned_signature,
+        share_index=share_index,
+    )
 
 
 def create_validator_data(
