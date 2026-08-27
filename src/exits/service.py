@@ -34,7 +34,8 @@ EXITING_STATUSES = [
 
 # Upper bound on the number of subset-reconstruction attempts per validator when searching
 # for a valid signature among poisoned shares; guards against combinatorial blowup.
-MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 500
+# Each attempt costs ~0.25s of pure-Python BLS math, so 100 attempts is ~25s per validator.
+MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 100
 
 
 async def process_exits(protocol_config: ProtocolConfig) -> None:
@@ -60,7 +61,7 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
         for validator in validators_batch['data']:
             index = int(validator['index'])
             if validator['status'] in exited_statuses:
-                del validator_exits[index]
+                validator_exits.pop(index, None)
                 continue
             validator_pubkeys[index] = BLSPubkey(
                 Web3.to_bytes(hexstr=HexStr(validator['validator']['pubkey']))
@@ -207,7 +208,6 @@ async def _fetch_exit_shares_from_endpoint(
                 'Malformed exit signature share in oracle response',
                 extra={'oracle': oracle.address, 'validator_index': validator_index},
             )
-            metrics.invalid_exit_shares.labels(network=NETWORK, oracle=oracle.address).inc()
             raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
         if validator_index in seen_validator_indexes:
@@ -227,7 +227,6 @@ async def _fetch_exit_shares_from_endpoint(
         logger.warning(
             'Duplicate validator exit shares in oracle response', extra={'oracle': oracle.address}
         )
-        metrics.invalid_exit_shares.labels(network=NETWORK, oracle=oracle.address).inc()
 
     metrics.processed_exits.labels(network=NETWORK).inc(len(exits))
 
@@ -286,8 +285,6 @@ def _recover_exit_signature(
                     validator_index,
                     excluded_addresses,
                 )
-                for address in excluded_addresses:
-                    metrics.invalid_exit_shares.labels(network=NETWORK, oracle=address).inc()
             return candidate_signature
 
     logger.error(

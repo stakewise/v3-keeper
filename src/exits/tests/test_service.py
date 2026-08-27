@@ -13,7 +13,7 @@ from web3.types import Timestamp
 
 from src.common.clients import consensus_client
 from src.common.tests.factories import create_oracle
-from src.config.settings import NETWORK, NETWORK_CONFIG
+from src.config.settings import NETWORK_CONFIG
 from src.exits.crypto import reconstruct_shared_bls_signature
 from src.exits.service import (
     _fetch_exit_shares_from_endpoint,
@@ -27,7 +27,6 @@ from src.exits.tests.factories import (
     poison_exit_share,
 )
 from src.exits.typings import ValidatorExitShare
-from src.metrics import metrics
 
 CHAIN_HEAD = ChainHead(
     epoch=1, slot=32, block_number=BlockNumber(100), execution_ts=Timestamp(1700000000)
@@ -401,9 +400,7 @@ class TestRecoverExitSignature:
         shares[0] = poison_exit_share(setup, share_index=0).exit_signature_share
         poisoned_address = protocol_config.oracles[0].address
 
-        with caplog.at_level(logging.WARNING), patch.object(
-            metrics, 'invalid_exit_shares'
-        ) as invalid_exit_shares_mock:
+        with caplog.at_level(logging.WARNING):
             recovered = _recover_exit_signature(
                 validator_index=validator_index,
                 shares=shares,
@@ -414,7 +411,6 @@ class TestRecoverExitSignature:
 
         assert recovered is not None
         assert poisoned_address in caplog.text
-        invalid_exit_shares_mock.labels.assert_any_call(network=NETWORK, oracle=poisoned_address)
 
     def test_aborts_after_max_recovery_attempts(self, caplog):
         validator_index = 204
