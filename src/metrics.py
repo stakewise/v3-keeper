@@ -32,6 +32,11 @@ class Metrics:
         self.processed_exits = Counter(
             'processed_exits', 'Number of exits keeper processed', labelnames=['network']
         )
+        self.invalid_exit_shares = Counter(
+            'invalid_exit_shares',
+            'Number of invalid or duplicate exit signature shares received from an oracle',
+            labelnames=['network', 'oracle'],
+        )
         self.keeper_balance = Gauge('keeper_balance', 'Keeper balance', labelnames=['network'])
 
     def set_app_version(self) -> None:
