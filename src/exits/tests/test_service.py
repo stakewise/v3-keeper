@@ -73,7 +73,7 @@ async def test_one_poisoned_share_recovered_from_honest_subset(caplog):
     assert poisoned_oracle_address in caplog.text
 
 
-async def test_non_curve_share_recovered_from_honest_subset(caplog):
+async def test_process_exits_recovers_from_non_curve_share(caplog):
     validator_index = 108
     protocol_config = get_mocked_protocol_config(
         oracles_count=5, exit_signature_recover_threshold=4
