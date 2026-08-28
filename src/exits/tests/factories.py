@@ -2,10 +2,12 @@ import random
 from dataclasses import dataclass
 from typing import Any
 
+from eth_typing import ChecksumAddress
 from eth_typing.bls import BLSPubkey, BLSSignature
 from py_ecc.bls import G2ProofOfPossession as bls
 from py_ecc.optimized_bls12_381.optimized_curve import curve_order
 from sw_utils import get_exit_message_signing_root
+from sw_utils.tests.factories import faker
 from web3 import Web3
 
 from src.config.settings import NETWORK_CONFIG
@@ -48,19 +50,27 @@ def create_threshold_signature_setup(
 
 
 def create_exit_shares(
-    setup: ThresholdSignatureSetup, share_indexes: list[int]
+    setup: ThresholdSignatureSetup,
+    share_indexes: list[int],
+    oracle_addresses: dict[int, ChecksumAddress] | None = None,
 ) -> list[ValidatorExitShare]:
+    oracle_addresses = oracle_addresses or {}
     return [
         ValidatorExitShare(
             validator_index=setup.validator_index,
             exit_signature_share=setup.shares[share_index],
             share_index=share_index,
+            oracle_address=oracle_addresses.get(share_index) or faker.eth_address(),
         )
         for share_index in share_indexes
     ]
 
 
-def poison_exit_share(setup: ThresholdSignatureSetup, share_index: int) -> ValidatorExitShare:
+def poison_exit_share(
+    setup: ThresholdSignatureSetup,
+    share_index: int,
+    oracle_address: ChecksumAddress | None = None,
+) -> ValidatorExitShare:
     """Signs the share key over another validator's exit message: well-formed but wrong."""
     wrong_message = _exit_signing_root(setup.validator_index + 1)
     poisoned_signature = BLSSignature(bls.Sign(setup.share_secret_keys[share_index], wrong_message))
@@ -68,6 +78,7 @@ def poison_exit_share(setup: ThresholdSignatureSetup, share_index: int) -> Valid
         validator_index=setup.validator_index,
         exit_signature_share=poisoned_signature,
         share_index=share_index,
+        oracle_address=oracle_address or faker.eth_address(),
     )
 
 
