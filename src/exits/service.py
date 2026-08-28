@@ -32,9 +32,7 @@ EXITING_STATUSES = [
     ValidatorStatus.WITHDRAWAL_DONE,
 ]
 
-# Upper bound on the number of subset-reconstruction attempts per validator when searching
-# for a valid signature among poisoned shares; guards against combinatorial blowup.
-# Each attempt costs ~0.25s of pure-Python BLS math, so 100 attempts is ~25s per validator.
+# Cap on subset reconstruction attempts per validator; each costs ~0.25s of BLS math.
 MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 100
 
 
@@ -111,8 +109,7 @@ async def _process_validator_exit_shares(
         )
         return False
 
-    exit_signature = await asyncio.to_thread(
-        _recover_exit_signature,
+    exit_signature = _recover_exit_signature(
         validator_index=validator_index,
         shares=signatures,
         threshold=protocol_config.exit_signature_recover_threshold,
@@ -243,10 +240,7 @@ def _recover_exit_signature(
     share_indexes = sorted(shares)
     attempts = 0
 
-    # Leave-k-out search, largest subsets first: the full share set is tried first (so a
-    # single bad oracle is found by the very next size down), and every combination of size
-    # >= threshold is eventually tried, so the search is complete. For a single bad oracle
-    # this terminates in O(N) attempts instead of enumerating all size-threshold subsets.
+    # Largest subsets first: a single bad oracle is excluded within O(N) attempts.
     for size in range(len(share_indexes), threshold - 1, -1):
         for combination in itertools.combinations(share_indexes, size):
             attempts += 1
@@ -262,9 +256,7 @@ def _recover_exit_signature(
             try:
                 candidate_signature = reconstruct_shared_bls_signature(subset)
             except ValueError as e:
-                # A non-curve-point share (e.g. malformed bytes with a valid length) makes
-                # py_ecc's point decompression raise instead of returning False; treat it the
-                # same as a failed verification so leave-k-out excludes it naturally.
+                # Non-curve share bytes make point decompression raise; treat as invalid.
                 logger.debug(
                     'Failed to reconstruct exit signature for validator %s from shares %s: %s',
                     validator_index,

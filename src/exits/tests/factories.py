@@ -17,7 +17,7 @@ class ThresholdSignatureSetup:
     validator_index: int
     threshold: int
     public_key: BLSPubkey
-    # secret key of each oracle's share, keyed by share_index; used to sign poisoned messages
+    # share secret keys by share_index, used to build poisoned shares
     share_secret_keys: dict[int, int]
     shares: dict[int, BLSSignature]
 
@@ -25,8 +25,7 @@ class ThresholdSignatureSetup:
 def create_threshold_signature_setup(
     validator_index: int, oracles_count: int, threshold: int
 ) -> ThresholdSignatureSetup:
-    """Shamir-splits a random BLS secret key of degree threshold-1, evaluating share i at
-    x = i + 1 to match reconstruct_shared_bls_signature's Lagrange coefficient convention."""
+    """Shamir-splits a random BLS key; share i is evaluated at x = i + 1 to match crypto.py."""
     secret_key = random.randint(1, curve_order - 1)
     coefficients = [secret_key] + [random.randint(1, curve_order - 1) for _ in range(threshold - 1)]
     message = _exit_signing_root(validator_index)
@@ -62,8 +61,7 @@ def create_exit_shares(
 
 
 def poison_exit_share(setup: ThresholdSignatureSetup, share_index: int) -> ValidatorExitShare:
-    """Signs the same share secret key over a different validator's exit message,
-    simulating a well-formed share that was signed over the wrong content."""
+    """Signs the share key over another validator's exit message: well-formed but wrong."""
     wrong_message = _exit_signing_root(setup.validator_index + 1)
     poisoned_signature = BLSSignature(bls.Sign(setup.share_secret_keys[share_index], wrong_message))
     return ValidatorExitShare(
