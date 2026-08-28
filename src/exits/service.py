@@ -6,8 +6,9 @@ from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp import ClientSession
-from eth_typing.bls import BLSSignature
-from sw_utils import ValidatorStatus, get_chain_latest_head
+from eth_typing.bls import BLSPubkey, BLSSignature
+from py_ecc.bls import G2ProofOfPossession
+from sw_utils import ValidatorStatus, get_chain_latest_head, is_valid_exit_signature
 from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
 from web3.types import HexStr
@@ -31,6 +32,9 @@ EXITING_STATUSES = [
     ValidatorStatus.WITHDRAWAL_DONE,
 ]
 
+# Cap on subset reconstruction attempts per validator; each costs ~0.25s of BLS math.
+MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 100
+
 
 async def process_exits(protocol_config: ProtocolConfig) -> None:
     chain_head = await get_chain_latest_head(
@@ -45,38 +49,83 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
     validator_exits = await _fetch_validator_exits(protocol_config.oracles)
     validator_indexes = [str(x) for x in validator_exits.keys()]
     exited_statuses = [x.value for x in EXITING_STATUSES]
+
+    validator_pubkeys: dict[int, BLSPubkey] = {}
     for validator_index_batch in itertools.batched(validator_indexes, VALIDATORS_FETCH_CHUNK_SIZE):
         validators_batch = await consensus_client.get_validators_by_ids(
             validator_ids=validator_index_batch,
             state_id=str(chain_head.slot),
         )
         for validator in validators_batch['data']:
-            if validator.get('status') in exited_statuses:
-                del validator_exits[int(validator.get('index'))]
+            index = int(validator['index'])
+            if validator['status'] in exited_statuses:
+                validator_exits.pop(index, None)
+                continue
+            validator_pubkeys[index] = BLSPubkey(
+                Web3.to_bytes(hexstr=HexStr(validator['validator']['pubkey']))
+            )
 
     if not validator_exits:
         return
+
+    submitted_count = 0
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
-
-        if len(shares) < protocol_config.exit_signature_recover_threshold:
-            logger.warning(
-                'Not enough exit signature shares for validator %s, skipping...', validator_index
+        try:
+            submitted = await _process_validator_exit_shares(
+                validator_index=validator_index,
+                shares=shares,
+                protocol_config=protocol_config,
+                public_key=validator_pubkeys.get(validator_index),
             )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception('Failed to process exit for validator %s: %s', validator_index, e)
             continue
+        if submitted:
+            submitted_count += 1
 
-        signatures = {}
-        for share in shares:
-            signatures[share.share_index] = share.exit_signature_share
-        exit_signature = reconstruct_shared_bls_signature(signatures)
+    logger.info('Processed %s validator exits, %s submitted', len(validator_exits), submitted_count)
 
-        if await _submit_signature(
-            validator_index=validator_index,
-            exit_signature=Web3.to_hex(exit_signature),
-        ):
-            logger.info('Validator %s exit successfully initiated', validator_index)
 
-    logger.info('Validator exits has been successfully processed')
+async def _process_validator_exit_shares(
+    validator_index: int,
+    shares: list[ValidatorExitShare],
+    protocol_config: ProtocolConfig,
+    public_key: BLSPubkey | None,
+) -> bool:
+    if public_key is None:
+        logger.warning(
+            'Missing consensus validator pubkey for validator %s, skipping...', validator_index
+        )
+        return False
+
+    signatures: dict[int, BLSSignature] = {}
+    for share in shares:
+        signatures[share.share_index] = share.exit_signature_share
+
+    if len(signatures) < protocol_config.exit_signature_recover_threshold:
+        logger.warning(
+            'Not enough exit signature shares for validator %s, skipping...', validator_index
+        )
+        return False
+
+    exit_signature = _recover_exit_signature(
+        validator_index=validator_index,
+        shares=signatures,
+        threshold=protocol_config.exit_signature_recover_threshold,
+        public_key=public_key,
+        oracles=protocol_config.oracles,
+    )
+    if exit_signature is None:
+        return False
+
+    submitted = await _submit_signature(
+        validator_index=validator_index,
+        exit_signature=Web3.to_hex(exit_signature),
+    )
+    if submitted:
+        logger.info('Validator %s exit successfully initiated', validator_index)
+    return submitted
 
 
 async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
@@ -136,6 +185,9 @@ async def _fetch_exit_shares_from_endpoint(
     exits: list[ValidatorExitShare] = []
     if not data:
         return []
+
+    seen_validator_indexes: set[int] = set()
+    duplicates_found = False
     for exit_data in data:
         for key in ['index', 'exit_signature_share']:
             if key not in exit_data.keys():
@@ -145,18 +197,106 @@ async def _fetch_exit_shares_from_endpoint(
                 )
                 raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
-        validator_exit = ValidatorExitShare(
-            validator_index=exit_data['index'],
-            exit_signature_share=BLSSignature(
-                Web3.to_bytes(hexstr=exit_data['exit_signature_share'])
-            ),
-            share_index=oracle_index,
+        validator_index = int(exit_data['index'])
+        share = BLSSignature(Web3.to_bytes(hexstr=exit_data['exit_signature_share']))
+        # pylint: disable-next=protected-access
+        if not G2ProofOfPossession._is_valid_signature(share):
+            logger.warning(
+                'Malformed exit signature share in oracle response',
+                extra={'oracle': oracle.address, 'validator_index': validator_index},
+            )
+            raise RuntimeError(f'Invalid response from endpoint {endpoint}')
+
+        if validator_index in seen_validator_indexes:
+            duplicates_found = True
+            continue
+        seen_validator_indexes.add(validator_index)
+
+        exits.append(
+            ValidatorExitShare(
+                validator_index=validator_index,
+                exit_signature_share=share,
+                share_index=oracle_index,
+            )
         )
-        exits.append(validator_exit)
+
+    if duplicates_found:
+        logger.warning(
+            'Duplicate validator exit shares in oracle response', extra={'oracle': oracle.address}
+        )
 
     metrics.processed_exits.labels(network=NETWORK).inc(len(exits))
 
     return exits
+
+
+def _recover_exit_signature(
+    validator_index: int,
+    shares: dict[int, BLSSignature],
+    threshold: int,
+    public_key: BLSPubkey,
+    oracles: list[Oracle],
+) -> BLSSignature | None:
+    share_indexes = sorted(shares)
+    attempts = 0
+
+    # Largest subsets first: a single bad oracle is excluded within O(N) attempts.
+    for size in range(len(share_indexes), threshold - 1, -1):
+        for combination in itertools.combinations(share_indexes, size):
+            attempts += 1
+            if attempts > MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS:
+                logger.error(
+                    'Aborted exit signature recovery for validator %s after %s attempts',
+                    validator_index,
+                    MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS,
+                )
+                return None
+
+            subset = {index: shares[index] for index in combination}
+            try:
+                candidate_signature = reconstruct_shared_bls_signature(subset)
+            except ValueError as e:
+                # Non-curve share bytes make point decompression raise; treat as invalid.
+                logger.debug(
+                    'Failed to reconstruct exit signature for validator %s from shares %s: %s',
+                    validator_index,
+                    combination,
+                    e,
+                )
+                continue
+            if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
+                continue
+
+            excluded_addresses = [
+                oracles[index].address for index in share_indexes if index not in combination
+            ]
+            if excluded_addresses:
+                logger.warning(
+                    'Recovered valid exit signature for validator %s, excluding shares '
+                    'from oracles %s',
+                    validator_index,
+                    excluded_addresses,
+                )
+            return candidate_signature
+
+    logger.error(
+        'Failed to recover a valid exit signature for validator %s from %s shares',
+        validator_index,
+        len(shares),
+    )
+    return None
+
+
+def _is_valid_exit_signature(
+    validator_index: int, public_key: BLSPubkey, signature: BLSSignature
+) -> bool:
+    return is_valid_exit_signature(
+        validator_index=validator_index,
+        public_key=public_key,
+        signature=signature,
+        genesis_validators_root=NETWORK_CONFIG.GENESIS_VALIDATORS_ROOT,
+        fork=NETWORK_CONFIG.SHAPELLA_FORK,
+    )
 
 
 async def _submit_signature(validator_index: int, exit_signature: HexStr) -> bool:
