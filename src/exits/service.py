@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import aiohttp
 from aiohttp import ClientSession
 from eth_typing.bls import BLSPubkey, BLSSignature
-from py_ecc.bls import G2ProofOfPossession
+from pydantic import TypeAdapter
 from sw_utils import ValidatorStatus, get_chain_latest_head, is_valid_exit_signature
 from sw_utils.typings import Oracle, ProtocolConfig
 from web3 import Web3
@@ -17,6 +17,7 @@ from src.common.clients import consensus_client
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.exits.crypto import reconstruct_shared_bls_signature
+from src.exits.schemas import SHARE_INDEX_UNSET, OracleValidatorExit
 from src.exits.typings import ValidatorExitShare
 from src.metrics import metrics
 
@@ -34,6 +35,8 @@ EXITING_STATUSES = [
 
 # Cap on subset reconstruction attempts per validator; each costs ~0.25s of BLS math.
 MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 100
+
+oracle_exits_adapter = TypeAdapter(list[OracleValidatorExit])
 
 
 async def process_exits(protocol_config: ProtocolConfig) -> None:
@@ -193,58 +196,30 @@ async def _fetch_exit_shares_from_endpoint(
 ) -> list[ValidatorExitShare]:
     url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
-    exits: list[ValidatorExitShare] = []
     if not data:
         return []
 
+    # Malformed responses raise `pydantic.ValidationError`, rejecting the whole response.
+    oracle_exits = oracle_exits_adapter.validate_python(data)
+
+    exits: list[ValidatorExitShare] = []
     seen_validator_indexes: set[int] = set()
     duplicates_found = False
-    for exit_data in data:
-        for key in ['index', 'exit_signature_share']:
-            if key not in exit_data.keys():
-                logger.warning(
-                    'Invalid response from oracle',
-                    extra={'oracle': oracle.address, 'response': data},
-                )
-                raise RuntimeError(f'Invalid response from endpoint {endpoint}')
-
-        validator_index = int(exit_data['index'])
-        # TODO: make `share_index` mandatory once every oracle in every network
-        # serves it, and drop the fallback to the oracle's config position.
-        try:
-            share_index = int(exit_data.get('share_index', oracle_index))
-        except (TypeError, ValueError):
-            share_index = -1
-        if share_index < 0:
-            logger.warning(
-                'Malformed share index in oracle response',
-                extra={
-                    'oracle': oracle.address,
-                    'validator_index': validator_index,
-                    'share_index': exit_data.get('share_index'),
-                },
-            )
-            raise RuntimeError(f'Invalid response from endpoint {endpoint}')
-
-        share = BLSSignature(Web3.to_bytes(hexstr=exit_data['exit_signature_share']))
-        # pylint: disable-next=protected-access
-        if not G2ProofOfPossession._is_valid_signature(share):
-            logger.warning(
-                'Malformed exit signature share in oracle response',
-                extra={'oracle': oracle.address, 'validator_index': validator_index},
-            )
-            raise RuntimeError(f'Invalid response from endpoint {endpoint}')
-
-        if validator_index in seen_validator_indexes:
+    for oracle_exit in oracle_exits:
+        if oracle_exit.validator_index in seen_validator_indexes:
             duplicates_found = True
             continue
-        seen_validator_indexes.add(validator_index)
+        seen_validator_indexes.add(oracle_exit.validator_index)
 
         exits.append(
             ValidatorExitShare(
-                validator_index=validator_index,
-                exit_signature_share=share,
-                share_index=share_index,
+                validator_index=oracle_exit.validator_index,
+                exit_signature_share=oracle_exit.exit_signature_share,
+                share_index=(
+                    oracle_index
+                    if oracle_exit.share_index == SHARE_INDEX_UNSET
+                    else oracle_exit.share_index
+                ),
                 oracle_address=oracle.address,
             )
         )
