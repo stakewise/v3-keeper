@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from eth_typing import BlockNumber
 from eth_typing.bls import BLSSignature
+from pydantic import ValidationError
 from sw_utils import ChainHead, is_valid_exit_signature
 from sw_utils.tests.factories import faker, get_mocked_protocol_config
 from sw_utils.typings import ProtocolConfig
@@ -372,7 +373,7 @@ class TestProcessExits:
             await process_exits(protocol_config)
 
         submit_mock.assert_not_called()
-        assert 'Malformed' in caplog.text
+        assert 'invalid bls signature' in caplog.text
 
     async def test_validator_exit_failure_isolated_from_other_validators(self, caplog):
         protocol_config = get_mocked_protocol_config(
@@ -458,9 +459,7 @@ class TestFetchExitSharesFromEndpoint:
         assert [share.share_index for share in shares] == [2]
 
     @pytest.mark.parametrize('share_index', [-1, 'abc', None])
-    async def test_malformed_share_index_rejects_whole_response(
-        self, client_session, caplog, share_index
-    ):
+    async def test_malformed_share_index_rejects_whole_response(self, client_session, share_index):
         oracle = create_oracle(num_endpoints=1)
         setup = create_threshold_signature_setup(validator_index=5, oracles_count=3, threshold=1)
         data = [
@@ -471,28 +470,35 @@ class TestFetchExitSharesFromEndpoint:
             }
         ]
 
-        with patch('src.exits.service.aiohttp_fetch', return_value=data), caplog.at_level(
-            logging.WARNING
-        ), pytest.raises(RuntimeError):
+        with patch('src.exits.service.aiohttp_fetch', return_value=data), pytest.raises(
+            ValidationError
+        ):
             await _fetch_exit_shares_from_endpoint(
                 session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
             )
 
-        assert 'Malformed share index' in caplog.text
-
-    async def test_malformed_share_rejects_whole_response(self, client_session, caplog):
+    async def test_malformed_share_rejects_whole_response(self, client_session):
         oracle = create_oracle(num_endpoints=1)
         malformed_share = Web3.to_hex(random.randbytes(64))
         data = [{'index': '7', 'exit_signature_share': malformed_share}]
 
-        with patch('src.exits.service.aiohttp_fetch', return_value=data), caplog.at_level(
-            logging.WARNING
-        ), pytest.raises(RuntimeError):
+        with patch('src.exits.service.aiohttp_fetch', return_value=data), pytest.raises(
+            ValidationError
+        ):
             await _fetch_exit_shares_from_endpoint(
                 session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
             )
 
-        assert 'Malformed' in caplog.text
+    async def test_missing_field_rejects_whole_response(self, client_session):
+        oracle = create_oracle(num_endpoints=1)
+        data = [{'index': '7'}]
+
+        with patch('src.exits.service.aiohttp_fetch', return_value=data), pytest.raises(
+            ValidationError
+        ):
+            await _fetch_exit_shares_from_endpoint(
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
+            )
 
 
 class TestRecoverExitSignature:
