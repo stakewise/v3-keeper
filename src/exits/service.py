@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from urllib.parse import urljoin
 
 import aiohttp
@@ -18,7 +19,7 @@ from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.exits.crypto import reconstruct_shared_bls_signature
 from src.exits.schemas import SHARE_INDEX_UNSET, OracleValidatorExit
-from src.exits.typings import ValidatorExitShare
+from src.exits.typings import SharesCombination, ValidatorExitShare
 from src.metrics import metrics
 
 logger = logging.getLogger(__name__)
@@ -240,46 +241,37 @@ def _recover_exit_signature(
     threshold: int,
     public_key: BLSPubkey,
 ) -> BLSSignature | None:
-    share_indexes = sorted(shares)
-    attempts = 0
+    for attempts, combination in enumerate(_iter_shares_combinations(shares, threshold), start=1):
+        if attempts > MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS:
+            logger.error(
+                'Aborted exit signature recovery for validator %s after %s attempts',
+                validator_index,
+                MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS,
+            )
+            return None
 
-    # Largest subsets first: a single bad oracle is excluded within O(N) attempts.
-    for size in range(len(share_indexes), threshold - 1, -1):
-        for combination in itertools.combinations(share_indexes, size):
-            attempts += 1
-            if attempts > MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS:
-                logger.error(
-                    'Aborted exit signature recovery for validator %s after %s attempts',
-                    validator_index,
-                    MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS,
-                )
-                return None
+        try:
+            candidate_signature = reconstruct_shared_bls_signature(combination.shares_subset)
+        except ValueError as e:
+            # Non-curve share bytes make point decompression raise; treat as invalid.
+            logger.debug(
+                'Failed to reconstruct exit signature for validator %s from shares %s: %s',
+                validator_index,
+                combination.share_indexes,
+                e,
+            )
+            continue
+        if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
+            continue
 
-            subset = {index: shares[index].exit_signature_share for index in combination}
-            try:
-                candidate_signature = reconstruct_shared_bls_signature(subset)
-            except ValueError as e:
-                # Non-curve share bytes make point decompression raise; treat as invalid.
-                logger.debug(
-                    'Failed to reconstruct exit signature for validator %s from shares %s: %s',
-                    validator_index,
-                    combination,
-                    e,
-                )
-                continue
-            if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
-                continue
-
-            excluded_indexes = [index for index in share_indexes if index not in combination]
-            excluded_oracles = [shares[index].oracle_address for index in excluded_indexes]
-            if excluded_oracles:
-                logger.warning(
-                    'Recovered valid exit signature for validator %s, excluding shares '
-                    'from oracles %s',
-                    validator_index,
-                    excluded_oracles,
-                )
-            return candidate_signature
+        if combination.excluded_oracles:
+            logger.warning(
+                'Recovered valid exit signature for validator %s, excluding shares '
+                'from oracles %s',
+                validator_index,
+                combination.excluded_oracles,
+            )
+        return candidate_signature
 
     logger.error(
         'Failed to recover a valid exit signature for validator %s from %s shares',
@@ -287,6 +279,28 @@ def _recover_exit_signature(
         len(shares),
     )
     return None
+
+
+def _iter_shares_combinations(
+    shares: dict[int, ValidatorExitShare], threshold: int
+) -> Iterator[SharesCombination]:
+    """
+    Yields share combinations, largest subsets first:
+    a single bad oracle is excluded within O(N) attempts.
+    """
+    share_indexes = sorted(shares)
+
+    for size in range(len(share_indexes), threshold - 1, -1):
+        for combination in itertools.combinations(share_indexes, size):
+            shares_subset = {index: shares[index].exit_signature_share for index in combination}
+            excluded_indexes = [index for index in share_indexes if index not in combination]
+            excluded_oracles = [shares[index].oracle_address for index in excluded_indexes]
+            yield SharesCombination(
+                share_indexes=combination,
+                shares_subset=shares_subset,
+                excluded_indexes=excluded_indexes,
+                excluded_oracles=excluded_oracles,
+            )
 
 
 def _is_valid_exit_signature(
