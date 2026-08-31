@@ -172,6 +172,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # `apk upgrade` in the production stage is a no-op when its layer comes
+          # from cache, so Trivy sees stale Alpine packages. Always re-run the stage.
+          no-cache-filters: production
 
   scanner:
     name: Trivy scanner

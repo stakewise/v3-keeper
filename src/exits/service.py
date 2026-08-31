@@ -99,11 +99,23 @@ async def _process_validator_exit_shares(
         )
         return False
 
-    signatures: dict[int, BLSSignature] = {}
+    shares_by_index: dict[int, ValidatorExitShare] = {}
     for share in shares:
-        signatures[share.share_index] = share.exit_signature_share
+        # Two oracles can report the same share index: one of them serves a shard
+        # belonging to a position it no longer holds (legacy keys). Keep the first.
+        if share.share_index in shares_by_index:
+            logger.warning(
+                'Conflicting exit signature shares for validator %s at share index %s from '
+                'oracles %s and %s, keeping the first one',
+                validator_index,
+                share.share_index,
+                shares_by_index[share.share_index].oracle_address,
+                share.oracle_address,
+            )
+            continue
+        shares_by_index[share.share_index] = share
 
-    if len(signatures) < protocol_config.exit_signature_recover_threshold:
+    if len(shares_by_index) < protocol_config.exit_signature_recover_threshold:
         logger.warning(
             'Not enough exit signature shares for validator %s, skipping...', validator_index
         )
@@ -111,10 +123,9 @@ async def _process_validator_exit_shares(
 
     exit_signature = _recover_exit_signature(
         validator_index=validator_index,
-        shares=signatures,
+        shares=shares_by_index,
         threshold=protocol_config.exit_signature_recover_threshold,
         public_key=public_key,
-        oracles=protocol_config.oracles,
     )
     if exit_signature is None:
         return False
@@ -198,6 +209,23 @@ async def _fetch_exit_shares_from_endpoint(
                 raise RuntimeError(f'Invalid response from endpoint {endpoint}')
 
         validator_index = int(exit_data['index'])
+        # TODO: make `share_index` mandatory once every oracle in every network
+        # serves it, and drop the fallback to the oracle's config position.
+        try:
+            share_index = int(exit_data.get('share_index', oracle_index))
+        except (TypeError, ValueError):
+            share_index = -1
+        if share_index < 0:
+            logger.warning(
+                'Malformed share index in oracle response',
+                extra={
+                    'oracle': oracle.address,
+                    'validator_index': validator_index,
+                    'share_index': exit_data.get('share_index'),
+                },
+            )
+            raise RuntimeError(f'Invalid response from endpoint {endpoint}')
+
         share = BLSSignature(Web3.to_bytes(hexstr=exit_data['exit_signature_share']))
         # pylint: disable-next=protected-access
         if not G2ProofOfPossession._is_valid_signature(share):
@@ -216,7 +244,8 @@ async def _fetch_exit_shares_from_endpoint(
             ValidatorExitShare(
                 validator_index=validator_index,
                 exit_signature_share=share,
-                share_index=oracle_index,
+                share_index=share_index,
+                oracle_address=oracle.address,
             )
         )
 
@@ -232,10 +261,9 @@ async def _fetch_exit_shares_from_endpoint(
 
 def _recover_exit_signature(
     validator_index: int,
-    shares: dict[int, BLSSignature],
+    shares: dict[int, ValidatorExitShare],
     threshold: int,
     public_key: BLSPubkey,
-    oracles: list[Oracle],
 ) -> BLSSignature | None:
     share_indexes = sorted(shares)
     attempts = 0
@@ -252,7 +280,7 @@ def _recover_exit_signature(
                 )
                 return None
 
-            subset = {index: shares[index] for index in combination}
+            subset = {index: shares[index].exit_signature_share for index in combination}
             try:
                 candidate_signature = reconstruct_shared_bls_signature(subset)
             except ValueError as e:
@@ -267,15 +295,14 @@ def _recover_exit_signature(
             if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
                 continue
 
-            excluded_addresses = [
-                oracles[index].address for index in share_indexes if index not in combination
-            ]
-            if excluded_addresses:
+            excluded_indexes = [index for index in share_indexes if index not in combination]
+            excluded_oracles = [shares[index].oracle_address for index in excluded_indexes]
+            if excluded_oracles:
                 logger.warning(
                     'Recovered valid exit signature for validator %s, excluding shares '
                     'from oracles %s',
                     validator_index,
-                    excluded_addresses,
+                    excluded_oracles,
                 )
             return candidate_signature
 
