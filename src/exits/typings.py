@@ -22,7 +22,5 @@ class SharesCombination:
     share_indexes: tuple[int, ...]
     # Exit signature shares keyed by share index, as passed to the reconstruction.
     shares_subset: dict[int, BLSSignature]
-    # Share indexes left out of this combination.
-    excluded_indexes: list[int]
     # Oracles that served the excluded shares.
     excluded_oracles: list[ChecksumAddress]

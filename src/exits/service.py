@@ -298,7 +298,6 @@ def _iter_shares_combinations(
             yield SharesCombination(
                 share_indexes=combination,
                 shares_subset=shares_subset,
-                excluded_indexes=excluded_indexes,
                 excluded_oracles=excluded_oracles,
             )
 
