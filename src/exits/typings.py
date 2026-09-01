@@ -14,3 +14,13 @@ class ValidatorExitShare:
     # position is historical and the serving oracle may sit elsewhere in the
     # current config, or hold the shard through a legacy key.
     oracle_address: ChecksumAddress
+
+
+@dataclass
+class SharesCombination:
+    # Share indexes taking part in the reconstruction.
+    share_indexes: tuple[int, ...]
+    # Exit signature shares keyed by share index, as passed to the reconstruction.
+    shares_subset: dict[int, BLSSignature]
+    # Oracles that served the excluded shares.
+    excluded_oracles: list[ChecksumAddress]
