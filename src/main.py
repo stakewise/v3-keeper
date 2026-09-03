@@ -10,8 +10,6 @@ from src.common.execution import get_keeper_balance
 from src.common.startup_check import startup_checks
 from src.config.settings import (
     FORCE_EXITS_SUPPORTED_NETWORKS,
-    GQL_LOG_LEVEL,
-    LOG_LEVEL,
     METRICS_HOST,
     METRICS_PORT,
     NETWORK,
@@ -20,7 +18,6 @@ from src.config.settings import (
     SKIP_DISTRIBUTOR_REWARDS,
     SKIP_FORCE_EXITS,
     SKIP_UPDATE_LTV,
-    WEB3_LOG_LEVEL,
 )
 from src.distributor.service import process_distributor_rewards
 from src.exits.service import process_exits
@@ -29,15 +26,9 @@ from src.ltv.service import process_vault_max_ltv_user
 from src.metrics import metrics, metrics_server
 from src.protocol_config.service import get_protocol_config
 from src.rewards.service import process_rewards
+from src.setup_logging import setup_logging
 
-logging.basicConfig(
-    format='%(asctime)s %(name)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    level=LOG_LEVEL,
-)
-
-logging.getLogger('web3').setLevel(WEB3_LOG_LEVEL)
-logging.getLogger('gql.transport.aiohttp').setLevel(GQL_LOG_LEVEL)
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
