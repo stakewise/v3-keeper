@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 from eth_typing import ChecksumAddress
 from gql import gql
@@ -30,7 +29,7 @@ async def graph_get_ostoken_vaults(block_number: BlockNumber) -> list[ChecksumAd
 
 async def graph_get_vault_max_ltv_allocator(
     vault_address: str, block_number: BlockNumber
-) -> tuple[ChecksumAddress, Decimal] | None:
+) -> ChecksumAddress | None:
     query = gql(
         """
         query AllocatorsQuery($vault: String, $block: Int) {
@@ -39,10 +38,9 @@ async def graph_get_vault_max_ltv_allocator(
             first: 1
             orderBy: ltv
             orderDirection: desc
-            where: { vault: $vault }
+            where: { vault: $vault, ltv_gt: 0 }
           ) {
             address
-            ltv
           }
         }
         """
@@ -58,5 +56,4 @@ async def graph_get_vault_max_ltv_allocator(
     if not allocators:
         return None
 
-    allocator = allocators[0]
-    return Web3.to_checksum_address(allocator['address']), Decimal(allocator['ltv'])
+    return Web3.to_checksum_address(allocators[0]['address'])

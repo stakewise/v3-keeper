@@ -76,14 +76,9 @@ async def get_max_ltv_users(block_number: BlockNumber) -> list[VaultMaxLtvUser]:
     graph_vaults = await graph_get_vaults(vaults=ostoken_vaults, block_number=block_number)
 
     for vault in ostoken_vaults:
-        allocator = await graph_get_vault_max_ltv_allocator(vault, block_number)
-        if allocator is None:
-            logger.warning('No allocators in vault %s', vault)
-            continue
-        max_ltv_user_address, max_ltv_user_ltv = allocator
-
-        if not max_ltv_user_ltv:
-            logger.info('Max LTV in vault %s is zero. Skipping updating user.', vault)
+        max_ltv_user_address = await graph_get_vault_max_ltv_allocator(vault, block_number)
+        if max_ltv_user_address is None:
+            logger.info('No allocators with non-zero LTV in vault %s. Nothing to update.', vault)
             continue
 
         logger.info('max LTV user for vault %s is %s', vault, max_ltv_user_address)
