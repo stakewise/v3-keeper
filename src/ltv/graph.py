@@ -38,7 +38,7 @@ async def graph_get_vault_max_ltv_allocator(
             first: 1
             orderBy: ltv
             orderDirection: desc
-            where: { vault: $vault }
+            where: { vault: $vault, ltv_gt: 0 }
           ) {
             address
           }
