@@ -18,7 +18,7 @@ from src.common.clients import consensus_client
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
 from src.exits.crypto import reconstruct_shared_bls_signature
-from src.exits.schemas import SHARE_INDEX_UNSET, OracleValidatorExit
+from src.exits.schemas import OracleValidatorExit
 from src.exits.typings import SharesCombination, ValidatorExitShare
 from src.metrics import metrics
 
@@ -146,12 +146,7 @@ async def _process_validator_exit_shares(
 async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[ValidatorExitShare]]:
     async with ClientSession() as session:
         results = await asyncio.gather(
-            *[
-                _fetch_exit_shares_from_oracle(
-                    session=session, oracle=oracle, oracle_index=oracle_index
-                )
-                for oracle_index, oracle in enumerate(oracles)
-            ],
+            *[_fetch_exit_shares_from_oracle(session=session, oracle=oracle) for oracle in oracles],
             return_exceptions=True,
         )
     validator_exits = defaultdict(list)
@@ -171,11 +166,11 @@ async def _fetch_validator_exits(oracles: list[Oracle]) -> dict[int, list[Valida
 
 
 async def _fetch_exit_shares_from_oracle(
-    session: ClientSession, oracle: Oracle, oracle_index: int
+    session: ClientSession, oracle: Oracle
 ) -> list[ValidatorExitShare]:
     results = await asyncio.gather(
         *(
-            _fetch_exit_shares_from_endpoint(session, oracle, endpoint, oracle_index)
+            _fetch_exit_shares_from_endpoint(session, oracle, endpoint)
             for endpoint in oracle.endpoints
         ),
         return_exceptions=True,
@@ -193,7 +188,7 @@ async def _fetch_exit_shares_from_oracle(
 
 
 async def _fetch_exit_shares_from_endpoint(
-    session: ClientSession, oracle: Oracle, endpoint: str, oracle_index: int
+    session: ClientSession, oracle: Oracle, endpoint: str
 ) -> list[ValidatorExitShare]:
     url = urljoin(endpoint, EXIT_VOTE_URL_PATH)
     data = await aiohttp_fetch(session, url)
@@ -216,11 +211,7 @@ async def _fetch_exit_shares_from_endpoint(
             ValidatorExitShare(
                 validator_index=oracle_exit.validator_index,
                 exit_signature_share=oracle_exit.exit_signature_share,
-                share_index=(
-                    oracle_index
-                    if oracle_exit.share_index == SHARE_INDEX_UNSET
-                    else oracle_exit.share_index
-                ),
+                share_index=oracle_exit.share_index,
                 oracle_address=oracle.address,
             )
         )
