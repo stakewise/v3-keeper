@@ -15,3 +15,14 @@ def to_bls_signature(v: Any) -> BLSSignature:
         pass
 
     raise ValueError('invalid bls signature')
+
+
+def to_bytes32(v: Any) -> bytes:
+    try:
+        value = Web3.to_bytes(hexstr=v)
+    except Exception as e:  # nosec
+        raise ValueError('invalid hex string') from e
+
+    if len(value) != 32:
+        raise ValueError('invalid bytes32 length')
+    return value

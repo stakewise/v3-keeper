@@ -15,6 +15,7 @@ sw-utils = { git = "https://github.com/stakewise/sw-utils.git", rev = "v0.14.4" 
 tomli = "==2.0.1"
 prometheus-client = "==0.18.0"
 pydantic = "==2.13.4"
+pycryptodome = "==3.23.0"
 
 [tool.poetry.group.dev.dependencies]
 isort = "==5.12.0"

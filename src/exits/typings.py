@@ -8,19 +8,14 @@ from eth_typing.bls import BLSSignature
 class ValidatorExitShare:
     validator_index: int
     exit_signature_share: BLSSignature
-    # Position of the shard in the IPFS blob, as reported by the oracle.
+    # Position of the shard in the IPFS upload, as reported by the oracle.
     share_index: int
-    # Oracle that served the shard. Not derivable from `share_index`: the blob
+    # Oracle that served the shard. Not derivable from `share_index`: the upload
     # position is historical and the serving oracle may sit elsewhere in the
     # current config, or hold the shard through a legacy key.
     oracle_address: ChecksumAddress
-
-
-@dataclass
-class SharesCombination:
-    # Share indexes taking part in the reconstruction.
-    share_indexes: tuple[int, ...]
-    # Exit signature shares keyed by share index, as passed to the reconstruction.
-    shares_subset: dict[int, BLSSignature]
-    # Oracles that served the excluded shares.
-    excluded_oracles: list[ChecksumAddress]
+    # IPFS upload holding the encrypted shard.
+    ipfs_hash: str
+    # One-time AES key of the shard, not the oracle private key.
+    # Lets the keeper decrypt the shard from the IPFS upload.
+    shard_key: bytes

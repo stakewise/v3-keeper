@@ -1,8 +1,7 @@
 import asyncio
 import itertools
 import logging
-from collections import defaultdict
-from collections.abc import Iterator
+from collections import Counter, defaultdict
 from urllib.parse import urljoin
 
 import aiohttp
@@ -17,9 +16,13 @@ from web3.types import HexStr
 from src.common.clients import consensus_client
 from src.common.utils import aiohttp_fetch
 from src.config.settings import NETWORK, NETWORK_CONFIG, VALIDATORS_FETCH_CHUNK_SIZE
-from src.exits.crypto import reconstruct_shared_bls_signature
+from src.exits.crypto import (
+    decrypt_shard_with_aes_key,
+    reconstruct_shared_bls_signature,
+)
+from src.exits.ipfs import EncryptedExitSignatureShards, fetch_exit_signature_shards
 from src.exits.schemas import OracleValidatorExit
-from src.exits.typings import SharesCombination, ValidatorExitShare
+from src.exits.typings import ValidatorExitShare
 from src.metrics import metrics
 
 logger = logging.getLogger(__name__)
@@ -33,9 +36,6 @@ EXITING_STATUSES = [
     ValidatorStatus.WITHDRAWAL_POSSIBLE,
     ValidatorStatus.WITHDRAWAL_DONE,
 ]
-
-# Cap on subset reconstruction attempts per validator; each costs ~0.25s of BLS math.
-MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS = 100
 
 oracle_exits_adapter = TypeAdapter(list[OracleValidatorExit])
 
@@ -72,6 +72,15 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
     if not validator_exits:
         return
 
+    validator_exits = {
+        validator_index: _filter_by_winning_ipfs_hash(validator_index, shares)
+        for validator_index, shares in validator_exits.items()
+    }
+    # One upload covers many validators: fetch each of them once
+    # todo rename and rework to (ipfs hash, pub key)
+    ipfs_hashes = {share.ipfs_hash for shares in validator_exits.values() for share in shares}
+    encrypted_shares = await fetch_exit_signature_shards(ipfs_hashes)
+
     submitted_count = 0
     for validator_index, shares in validator_exits.items():
         logger.info('Exiting %s validator', validator_index)
@@ -81,6 +90,7 @@ async def process_exits(protocol_config: ProtocolConfig) -> None:
                 shares=shares,
                 protocol_config=protocol_config,
                 public_key=validator_pubkeys.get(validator_index),
+                encrypted_shares=encrypted_shares,
             )
         except Exception as e:  # pylint: disable=broad-except
             logger.exception('Failed to process exit for validator %s: %s', validator_index, e)
@@ -96,6 +106,7 @@ async def _process_validator_exit_shares(
     shares: list[ValidatorExitShare],
     protocol_config: ProtocolConfig,
     public_key: BLSPubkey | None,
+    encrypted_shares: dict[str, EncryptedExitSignatureShards],
 ) -> bool:
     if public_key is None:
         logger.warning(
@@ -103,35 +114,22 @@ async def _process_validator_exit_shares(
         )
         return False
 
-    shares_by_index: dict[int, ValidatorExitShare] = {}
-    for share in shares:
-        # Two oracles can report the same share index: one of them serves a shard
-        # belonging to a position it no longer holds (legacy keys). Keep the first.
-        if share.share_index in shares_by_index:
-            logger.warning(
-                'Conflicting exit signature shares for validator %s at share index %s from '
-                'oracles %s and %s, keeping the first one',
-                validator_index,
-                share.share_index,
-                shares_by_index[share.share_index].oracle_address,
-                share.oracle_address,
-            )
-            continue
-        shares_by_index[share.share_index] = share
-
-    if len(shares_by_index) < protocol_config.exit_signature_recover_threshold:
+    verified_shares = _verify_exit_shares(
+        validator_index=validator_index,
+        shares=shares,
+        public_key=public_key,
+        encrypted_shares=encrypted_shares,
+    )
+    if len(verified_shares) < protocol_config.exit_signature_recover_threshold:
         logger.warning(
             'Not enough exit signature shares for validator %s, skipping...', validator_index
         )
         return False
 
-    exit_signature = _recover_exit_signature(
-        validator_index=validator_index,
-        shares=shares_by_index,
-        threshold=protocol_config.exit_signature_recover_threshold,
-        public_key=public_key,
-    )
-    if exit_signature is None:
+    exit_signature = reconstruct_shared_bls_signature(verified_shares)
+    # Verified shares can still be wrong if oracles collude on a fake upload
+    if not _is_valid_exit_signature(validator_index, public_key, exit_signature):
+        logger.error('Failed to recover a valid exit signature for validator %s', validator_index)
         return False
 
     submitted = await _submit_signature(
@@ -213,6 +211,8 @@ async def _fetch_exit_shares_from_endpoint(
                 exit_signature_share=oracle_exit.exit_signature_share,
                 share_index=oracle_exit.share_index,
                 oracle_address=oracle.address,
+                ipfs_hash=oracle_exit.ipfs_hash,
+                shard_key=oracle_exit.shard_key,
             )
         )
 
@@ -226,71 +226,86 @@ async def _fetch_exit_shares_from_endpoint(
     return exits
 
 
-def _recover_exit_signature(
-    validator_index: int,
-    shares: dict[int, ValidatorExitShare],
-    threshold: int,
-    public_key: BLSPubkey,
-) -> BLSSignature | None:
-    for attempts, combination in enumerate(_iter_shares_combinations(shares, threshold), start=1):
-        if attempts > MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS:
-            logger.error(
-                'Aborted exit signature recovery for validator %s after %s attempts',
-                validator_index,
-                MAX_EXIT_SIGNATURE_RECOVERY_ATTEMPTS,
-            )
-            return None
+def _filter_by_winning_ipfs_hash(
+    validator_index: int, shares: list[ValidatorExitShare]
+) -> list[ValidatorExitShare]:
+    """
+    Keeps shares of the IPFS upload served by the most oracles.
+    """
+    hash_counter = Counter(share.ipfs_hash for share in shares)
+    if len(hash_counter) <= 1:
+        return shares
 
-        try:
-            candidate_signature = reconstruct_shared_bls_signature(combination.shares_subset)
-        except ValueError as e:
-            # Non-curve share bytes make point decompression raise; treat as invalid.
-            logger.debug(
-                'Failed to reconstruct exit signature for validator %s from shares %s: %s',
-                validator_index,
-                combination.share_indexes,
-                e,
-            )
-            continue
-        if not _is_valid_exit_signature(validator_index, public_key, candidate_signature):
-            continue
-
-        if combination.excluded_oracles:
-            logger.warning(
-                'Recovered valid exit signature for validator %s, excluding shares '
-                'from oracles %s',
-                validator_index,
-                combination.excluded_oracles,
-            )
-        return candidate_signature
-
-    logger.error(
-        'Failed to recover a valid exit signature for validator %s from %s shares',
+    selected_hash, _ = hash_counter.most_common(1)[0]
+    logger.warning(
+        'Exit signature shares for validator %s come from different IPFS uploads: %s, using %s',
         validator_index,
-        len(shares),
+        dict(hash_counter),
+        selected_hash,
     )
-    return None
+    return [share for share in shares if share.ipfs_hash == selected_hash]
 
 
-def _iter_shares_combinations(
-    shares: dict[int, ValidatorExitShare], threshold: int
-) -> Iterator[SharesCombination]:
+def _verify_exit_shares(
+    validator_index: int,
+    shares: list[ValidatorExitShare],
+    public_key: BLSPubkey,
+    encrypted_shares: dict[str, EncryptedExitSignatureShards],
+) -> dict[int, BLSSignature]:
     """
-    Yields share combinations, largest subsets first:
-    a single bad oracle is excluded within O(N) attempts.
+    Decrypts every share from its IPFS upload with the shard key served by the oracle.
+    Drops shares that can't be decrypted or differ from the oracle response.
+    Returns verified shares by share index.
     """
-    share_indexes = sorted(shares)
-
-    for size in range(len(share_indexes), threshold - 1, -1):
-        for combination in itertools.combinations(share_indexes, size):
-            shares_subset = {index: shares[index].exit_signature_share for index in combination}
-            excluded_indexes = [index for index in share_indexes if index not in combination]
-            excluded_oracles = [shares[index].oracle_address for index in excluded_indexes]
-            yield SharesCombination(
-                share_indexes=combination,
-                shares_subset=shares_subset,
-                excluded_oracles=excluded_oracles,
+    verified_shares: dict[int, BLSSignature] = {}
+    for share in shares:
+        error = _get_exit_share_verification_error(
+            share=share,
+            upload_shards=encrypted_shares.get(share.ipfs_hash),
+            public_key=public_key,
+        )
+        if error:
+            logger.warning(
+                'Dropped exit signature share for validator %s at share index %s '
+                'from oracle %s: %s, ipfs hash %s',
+                validator_index,
+                share.share_index,
+                share.oracle_address,
+                error,
+                share.ipfs_hash,
             )
+            continue
+        # Shares with the same share index decrypt to the same shard
+        verified_shares[share.share_index] = share.exit_signature_share
+
+    return verified_shares
+
+
+def _get_exit_share_verification_error(
+    share: ValidatorExitShare,
+    upload_shards: EncryptedExitSignatureShards | None,
+    public_key: BLSPubkey,
+) -> str | None:
+    if upload_shards is None:
+        return 'IPFS upload is unavailable'
+
+    encrypted_shards = upload_shards.get(public_key)
+    if encrypted_shards is None:
+        return 'validator is missing in IPFS upload'
+    if share.share_index >= len(encrypted_shards):
+        return 'share index is missing in IPFS upload'
+
+    try:
+        decrypted_share = decrypt_shard_with_aes_key(
+            aes_key=share.shard_key,
+            encrypted_shard=encrypted_shards[share.share_index],
+        )
+    except ValueError:
+        return 'failed to decrypt shard with AES key'
+
+    if decrypted_share != share.exit_signature_share:
+        return 'decrypted shard differs from exit signature share'
+    return None
 
 
 def _is_valid_exit_signature(
