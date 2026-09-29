@@ -1,7 +1,6 @@
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from ens.constants import EMPTY_ADDR_HEX
-from eth_typing import BlockNumber
 from sw_utils.networks import GNOSIS, HOODI, MAINNET
 from sw_utils.networks import NETWORKS as BASE_NETWORKS
 from sw_utils.networks import BaseNetworkConfig
@@ -20,13 +19,11 @@ class NetworkConfig(BaseNetworkConfig):
     OSTOKEN_VAULT_ESCROW_CONTRACT_ADDRESS: ChecksumAddress
     LEVERAGE_STRATEGY_ID: str
     VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS: ChecksumAddress
-    CONFIG_UPDATED_CHECKPOINT_BLOCK: BlockNumber
-    CONFIG_UPDATED_EVENT_BLOCK: BlockNumber
 
 
 NETWORKS = {
     MAINNET: NetworkConfig(
-        **asdict(BASE_NETWORKS[MAINNET]),
+        **vars(BASE_NETWORKS[MAINNET]),
         SYMBOL='ETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
         LEVERAGE_STRATEGY_ID='0x8b74cefe9f33d72ccd3521e6d331272921607e547c75c914c2c56cfdad9defed',
@@ -39,11 +36,9 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xe0Ae8B04922d6e3fA06c2496A94EF2875EFcC7BB'
         ),
-        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(25573756),
-        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(25093055),
     ),
     HOODI: NetworkConfig(
-        **asdict(BASE_NETWORKS[HOODI]),
+        **vars(BASE_NETWORKS[HOODI]),
         SYMBOL='HoodiETH',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
         LEVERAGE_STRATEGY_ID='0x8b74cefe9f33d72ccd3521e6d331272921607e547c75c914c2c56cfdad9defed',
@@ -56,11 +51,9 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xcF619F9Dd8eB483239de953251fd13cB0F977c6C'
         ),
-        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(3251588),
-        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(1279009),
     ),
     GNOSIS: NetworkConfig(
-        **asdict(BASE_NETWORKS[GNOSIS]),
+        **vars(BASE_NETWORKS[GNOSIS]),
         SYMBOL='xDAI',
         KEEPER_MIN_BALANCE=Web3.to_wei('0.01', 'ether'),
         LEVERAGE_STRATEGY_ID='',
@@ -71,7 +64,5 @@ NETWORKS = {
         VAULT_USER_LTV_TRACKER_CONTRACT_ADDRESS=Web3.to_checksum_address(
             '0xdEa72c54f63470349CE2dC12f8232FE00241abE6'
         ),
-        CONFIG_UPDATED_CHECKPOINT_BLOCK=BlockNumber(47299352),
-        CONFIG_UPDATED_EVENT_BLOCK=BlockNumber(42392284),
     ),
 }
