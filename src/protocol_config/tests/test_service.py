@@ -1,10 +1,10 @@
-from unittest.mock import AsyncMock, call, patch
+from unittest.mock import AsyncMock, patch
 
 from eth_typing import BlockNumber
 from web3.types import EventData
 
 from src.protocol_config.service import (
-    _get_config_update_event_since_checkpoint,
+    _get_config_ipfs_hash_since_checkpoint,
     get_protocol_config,
     ipfs_fetch_client,
     keeper_contract,
@@ -20,61 +20,42 @@ def _config_event(ipfs_hash: str) -> EventData:
     )
 
 
-class TestGetConfigUpdateEventSinceCheckpoint:
-    async def test_returns_recent_event(self):
-        """An event after the checkpoint is returned without the fallback query."""
-        expected_event = _config_event('hash1')
-
+class TestGetConfigIpfsHashSinceCheckpoint:
+    async def test_returns_recent_event_hash(self):
+        """An event after the checkpoint takes precedence over the pinned hash."""
         with patch.object(
             keeper_contract,
             'get_config_update_event',
             new_callable=AsyncMock,
-            return_value=expected_event,
+            return_value=_config_event('hash1'),
         ) as mock_event, patch('src.protocol_config.service.NETWORK_CONFIG') as mock_config:
-            mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
-            mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
+            mock_config.CHECKPOINTS.CONFIG_UPDATE_CHECKPOINT_BLOCK = BlockNumber(90000)
+            mock_config.CHECKPOINTS.CONFIG_UPDATE_LAST_EVENT_IPFS_HASH = 'pinned'
 
-            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
+            result = await _get_config_ipfs_hash_since_checkpoint(to_block=BlockNumber(100000))
 
-        assert result is expected_event
+        assert result == 'hash1'
         mock_event.assert_awaited_once_with(
             from_block=BlockNumber(90001), to_block=BlockNumber(100000)
         )
 
-    async def test_falls_back_to_cached_block(self):
-        """With no event since the checkpoint, the known event block is queried."""
-        cached_event = _config_event('cached')
-
+    async def test_falls_back_to_pinned_hash(self):
+        """With no event since the checkpoint, the pinned IPFS hash is returned."""
         with patch.object(
             keeper_contract,
             'get_config_update_event',
             new_callable=AsyncMock,
-            side_effect=[None, cached_event],
+            return_value=None,
         ) as mock_event, patch('src.protocol_config.service.NETWORK_CONFIG') as mock_config:
-            mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
-            mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
+            mock_config.CHECKPOINTS.CONFIG_UPDATE_CHECKPOINT_BLOCK = BlockNumber(90000)
+            mock_config.CHECKPOINTS.CONFIG_UPDATE_LAST_EVENT_IPFS_HASH = 'pinned'
 
-            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
+            result = await _get_config_ipfs_hash_since_checkpoint(to_block=BlockNumber(100000))
 
-        assert result is cached_event
-        assert mock_event.await_args_list == [
-            call(from_block=BlockNumber(90001), to_block=BlockNumber(100000)),
-            call(from_block=BlockNumber(80000), to_block=BlockNumber(80000)),
-        ]
-
-    async def test_returns_none_when_no_events(self):
-        with patch.object(
-            keeper_contract,
-            'get_config_update_event',
-            new_callable=AsyncMock,
-            side_effect=[None, None],
-        ), patch('src.protocol_config.service.NETWORK_CONFIG') as mock_config:
-            mock_config.CONFIG_UPDATED_CHECKPOINT_BLOCK = BlockNumber(90000)
-            mock_config.CONFIG_UPDATED_EVENT_BLOCK = BlockNumber(80000)
-
-            result = await _get_config_update_event_since_checkpoint(to_block=BlockNumber(100000))
-
-        assert result is None
+        assert result == 'pinned'
+        mock_event.assert_awaited_once_with(
+            from_block=BlockNumber(90001), to_block=BlockNumber(100000)
+        )
 
 
 class TestGetProtocolConfig:
@@ -87,9 +68,10 @@ class TestGetProtocolConfig:
 
     async def test_cold_cache_fetches_and_populates(self):
         with patch('src.protocol_config.service.execution_client') as mock_client, patch(
-            'src.protocol_config.service._get_config_update_event_since_checkpoint',
+            'src.protocol_config.service._get_config_ipfs_hash_since_checkpoint',
             new_callable=AsyncMock,
-        ) as mock_event, patch.object(
+            return_value='hash1',
+        ) as mock_ipfs_hash, patch.object(
             keeper_contract, 'get_rewards_threshold', new_callable=AsyncMock, return_value=7
         ), patch.object(
             ipfs_fetch_client, 'fetch_json', new_callable=AsyncMock, return_value={'k': 'v1'}
@@ -97,12 +79,11 @@ class TestGetProtocolConfig:
             'src.protocol_config.service.build_protocol_config'
         ) as mock_build:
             mock_client.eth.get_block = AsyncMock(return_value={'number': BlockNumber(100)})
-            mock_event.return_value = _config_event('hash1')
 
             await get_protocol_config()
 
         # Cold path: delegates to the checkpoint-aware lookup.
-        mock_event.assert_awaited_once_with(to_block=BlockNumber(100))
+        mock_ipfs_hash.assert_awaited_once_with(to_block=BlockNumber(100))
         mock_fetch.assert_awaited_once_with('hash1')
         mock_build.assert_called_once_with(config_data={'k': 'v1'}, rewards_threshold=7)
 

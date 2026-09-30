@@ -1,6 +1,5 @@
 from eth_typing import BlockNumber
 from sw_utils import ProtocolConfig, build_protocol_config
-from web3.types import EventData
 
 from src.common.clients import execution_client, ipfs_fetch_client
 from src.common.contracts import keeper_contract
@@ -19,11 +18,9 @@ async def get_protocol_config() -> ProtocolConfig:
     to_block = block['number']
 
     if oracles_cache.checkpoint_block is None:
-        # Cold cache: full lookup with checkpoint scan and fallback.
-        event = await _get_config_update_event_since_checkpoint(to_block=to_block)
-        if not event:
-            raise ValueError('Failed to fetch IPFS hash of oracles config')
-        config = await ipfs_fetch_client.fetch_json(event['args']['configIpfsHash'])
+        # Cold cache: scan from the checkpoint, fall back to the pinned IPFS hash.
+        ipfs_hash = await _get_config_ipfs_hash_since_checkpoint(to_block=to_block)
+        config = await ipfs_fetch_client.fetch_json(ipfs_hash)
     else:
         # Warm cache: only scan blocks added since the last checkpoint.
         from_block = BlockNumber(oracles_cache.checkpoint_block + 1)
@@ -50,22 +47,19 @@ async def get_protocol_config() -> ProtocolConfig:
     )
 
 
-async def _get_config_update_event_since_checkpoint(to_block: BlockNumber) -> EventData | None:
+async def _get_config_ipfs_hash_since_checkpoint(to_block: BlockNumber) -> str:
     """
     Cold-cache lookup. Scans from after the known checkpoint to avoid re-scanning
-    the entire history, and falls back to the cached event block when no newer
-    ConfigUpdated event exists.
+    the entire history, and falls back to the pinned IPFS hash of the last known
+    ConfigUpdated event when no newer event exists.
     """
-    from_block = BlockNumber(NETWORK_CONFIG.CONFIG_UPDATED_CHECKPOINT_BLOCK + 1)
+    checkpoints = NETWORK_CONFIG.CHECKPOINTS
+    from_block = BlockNumber(checkpoints.CONFIG_UPDATE_CHECKPOINT_BLOCK + 1)
     event = await keeper_contract.get_config_update_event(
         from_block=from_block,
         to_block=to_block,
     )
     if event is not None:
-        return event
+        return event['args']['configIpfsHash']
 
-    cached_block = NETWORK_CONFIG.CONFIG_UPDATED_EVENT_BLOCK
-    return await keeper_contract.get_config_update_event(
-        from_block=cached_block,
-        to_block=cached_block,
-    )
+    return checkpoints.CONFIG_UPDATE_LAST_EVENT_IPFS_HASH
