@@ -194,69 +194,6 @@ class TestProcessExits:
         submit_mock.assert_called_once()
         assert _signature_is_valid(validator_index, setup.public_key, submit_mock)
 
-    async def test_mixed_upgraded_and_legacy_oracle_responses(self, client_session):
-        """Some oracles send `share_index`, some do not; both must land on the blob position."""
-        validator_index = 114
-        setup = create_threshold_signature_setup(
-            validator_index=validator_index, oracles_count=11, threshold=4
-        )
-        responses = {
-            # oracle_index -> response payload
-            0: [
-                {
-                    'index': str(validator_index),
-                    'exit_signature_share': Web3.to_hex(setup.shares[0]),
-                }
-            ],
-            1: [
-                {
-                    'index': str(validator_index),
-                    'share_index': 7,
-                    'exit_signature_share': Web3.to_hex(setup.shares[7]),
-                }
-            ],
-            2: [
-                {
-                    'index': str(validator_index),
-                    'exit_signature_share': Web3.to_hex(setup.shares[2]),
-                }
-            ],
-            3: [
-                {
-                    'index': str(validator_index),
-                    'share_index': 10,
-                    'exit_signature_share': Web3.to_hex(setup.shares[10]),
-                }
-            ],
-        }
-        oracle = create_oracle(num_endpoints=1)
-
-        shares = []
-        for oracle_index, data in responses.items():
-            with patch('src.exits.service.aiohttp_fetch', return_value=data):
-                shares += await _fetch_exit_shares_from_endpoint(
-                    session=client_session,
-                    oracle=oracle,
-                    endpoint=oracle.endpoints[0],
-                    oracle_index=oracle_index,
-                )
-
-        assert sorted(share.share_index for share in shares) == [0, 2, 7, 10]
-
-        protocol_config = get_mocked_protocol_config(
-            oracles_count=4, exit_signature_recover_threshold=4
-        )
-        validators_data = [
-            create_validator_data(validator_index, setup.public_key, 'active_ongoing')
-        ]
-
-        submit_mock = await _run_process_exits(
-            protocol_config, {validator_index: shares}, validators_data
-        )
-
-        submit_mock.assert_called_once()
-        assert _signature_is_valid(validator_index, setup.public_key, submit_mock)
-
     async def test_conflicting_share_index_keeps_first_share(self, caplog):
         """A poisoned share arriving second must not displace the good one at that index."""
         validator_index = 115
@@ -359,7 +296,13 @@ class TestProcessExits:
             oracles_count=1, exit_signature_recover_threshold=1
         )
         malformed_share = Web3.to_hex(random.randbytes(64))
-        data = [{'index': str(validator_index), 'exit_signature_share': malformed_share}]
+        data = [
+            {
+                'index': str(validator_index),
+                'share_index': 0,
+                'exit_signature_share': malformed_share,
+            }
+        ]
 
         with patch('src.exits.service.get_chain_latest_head', return_value=CHAIN_HEAD), patch(
             'src.exits.service.aiohttp_fetch', return_value=data
@@ -414,18 +357,19 @@ class TestFetchExitSharesFromEndpoint:
         oracle = create_oracle(num_endpoints=1)
         setup = create_threshold_signature_setup(validator_index=5, oracles_count=1, threshold=1)
         valid_share = Web3.to_hex(setup.shares[0])
-        data = [{'index': '5', 'exit_signature_share': valid_share} for _ in range(4)]
+        data = [
+            {'index': '5', 'share_index': 0, 'exit_signature_share': valid_share} for _ in range(4)
+        ]
 
         with patch('src.exits.service.aiohttp_fetch', return_value=data), caplog.at_level(
             logging.WARNING
         ):
             shares = await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=2
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
             )
 
         assert len(shares) == 1
         assert shares[0].validator_index == 5
-        assert shares[0].share_index == 2
         assert 'Duplicate' in caplog.text
 
     async def test_share_index_from_response_used(self, client_session):
@@ -441,22 +385,10 @@ class TestFetchExitSharesFromEndpoint:
 
         with patch('src.exits.service.aiohttp_fetch', return_value=data):
             shares = await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=1
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
             )
 
         assert [share.share_index for share in shares] == [9]
-
-    async def test_missing_share_index_falls_back_to_oracle_index(self, client_session):
-        oracle = create_oracle(num_endpoints=1)
-        setup = create_threshold_signature_setup(validator_index=5, oracles_count=3, threshold=1)
-        data = [{'index': '5', 'exit_signature_share': Web3.to_hex(setup.shares[0])}]
-
-        with patch('src.exits.service.aiohttp_fetch', return_value=data):
-            shares = await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=2
-            )
-
-        assert [share.share_index for share in shares] == [2]
 
     @pytest.mark.parametrize('share_index', [-1, 'abc', None])
     async def test_malformed_share_index_rejects_whole_response(self, client_session, share_index):
@@ -474,30 +406,38 @@ class TestFetchExitSharesFromEndpoint:
             ValidationError
         ):
             await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
             )
 
     async def test_malformed_share_rejects_whole_response(self, client_session):
         oracle = create_oracle(num_endpoints=1)
         malformed_share = Web3.to_hex(random.randbytes(64))
-        data = [{'index': '7', 'exit_signature_share': malformed_share}]
+        data = [{'index': '7', 'share_index': 0, 'exit_signature_share': malformed_share}]
 
         with patch('src.exits.service.aiohttp_fetch', return_value=data), pytest.raises(
             ValidationError
         ):
             await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
             )
 
-    async def test_missing_field_rejects_whole_response(self, client_session):
+    @pytest.mark.parametrize('field', ['share_index', 'exit_signature_share'])
+    async def test_missing_field_rejects_whole_response(self, client_session, field):
         oracle = create_oracle(num_endpoints=1)
-        data = [{'index': '7'}]
+        setup = create_threshold_signature_setup(validator_index=7, oracles_count=1, threshold=1)
+        item = {
+            'index': '7',
+            'share_index': 0,
+            'exit_signature_share': Web3.to_hex(setup.shares[0]),
+        }
+        del item[field]
+        data = [item]
 
         with patch('src.exits.service.aiohttp_fetch', return_value=data), pytest.raises(
             ValidationError
         ):
             await _fetch_exit_shares_from_endpoint(
-                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0], oracle_index=0
+                session=client_session, oracle=oracle, endpoint=oracle.endpoints[0]
             )
 
 
