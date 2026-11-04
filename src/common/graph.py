@@ -17,7 +17,7 @@ async def check_for_graph_node_sync_to_block(
     Useful for checking against latest block.
     """
     try:
-        graph_block_number = await graph_get_latest_block()
+        graph_block_number = await graph_client.get_last_synced_block()
     except Exception as e:
         raise ConnectionError(
             f'The graph node located at {graph_client.endpoint} ' f'is not available: {str(e)}',
@@ -106,23 +106,3 @@ async def graph_get_vaults(
         graph_vaults_map[vault.address] = vault
 
     return graph_vaults_map
-
-
-async def graph_get_latest_block() -> BlockNumber:
-    """
-    Returns the last synced block number of the graph node.
-    """
-    query = gql(
-        '''
-        query Meta {
-          _meta {
-            block {
-              number
-            }
-          }
-        }
-    '''
-    )
-    response = await graph_client.run_query(query)
-    graph_block_number = response['_meta']['block']['number']
-    return BlockNumber(graph_block_number)

@@ -23,7 +23,7 @@ async def graph_get_ostoken_vaults(block_number: BlockNumber) -> list[ChecksumAd
     params = {'block': block_number}
 
     response = await graph_client.run_query(query, params)
-    vaults = response['networks'][0]['osTokenVaultIds']  # pylint: disable=unsubscriptable-object
+    vaults = response['networks'][0]['osTokenVaultIds']
     return [Web3.to_checksum_address(vault) for vault in vaults]
 
 
@@ -51,7 +51,7 @@ async def graph_get_vault_max_ltv_allocator(
     }
 
     response = await graph_client.run_query(query, params)
-    allocators = response['allocators']  # pylint: disable=unsubscriptable-object
+    allocators = response['allocators']
 
     if not allocators:
         return None
