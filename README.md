@@ -91,7 +91,7 @@ Build requirements:
 Install dependencies and start keeper processes:
 
 ```sh
-poetry install --no-dev
+poetry install --only main
 PYTHONPATH="." python src/main.py
 ```
 

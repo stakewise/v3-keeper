@@ -13,12 +13,14 @@ ENV PYTHONUNBUFFERED=1 \
     \
     # poetry
     # https://python-poetry.org/docs/configuration/#using-environment-variables
-    POETRY_VERSION=1.8.3 \
+    POETRY_VERSION=2.5.1 \
     # make poetry install to this location
     POETRY_HOME="/opt/poetry" \
     # make poetry create the virtual environment in the project's root
     # it gets named `.venv`
     POETRY_VIRTUALENVS_IN_PROJECT=true \
+    # don't seed pip into the venv: Poetry installs packages without it
+    POETRY_VIRTUALENVS_OPTIONS_NO_PIP=true \
     # do not ask any interactive question
     POETRY_NO_INTERACTION=1 \
     \

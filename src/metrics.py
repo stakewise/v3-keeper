@@ -1,6 +1,6 @@
 from prometheus_client import Counter, Gauge, Info, start_http_server
 
-from src import _get_project_meta
+from src import __version__
 from src.common.accounts import keeper_account
 from src.config.settings import METRICS_HOST, METRICS_PORT, NETWORK
 
@@ -35,7 +35,7 @@ class Metrics:
         self.keeper_balance = Gauge('keeper_balance', 'Keeper balance', labelnames=['network'])
 
     def set_app_version(self) -> None:
-        self.app_version.labels(network=NETWORK).info({'version': _get_project_meta()['version']})
+        self.app_version.labels(network=NETWORK).info({'version': __version__})
 
     def set_keeper_account(self) -> None:
         self.keeper_account.labels(network=NETWORK).info({'keeper_account': keeper_account.address})
