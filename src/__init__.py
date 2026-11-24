@@ -1,13 +1,13 @@
+import tomllib
 from pathlib import Path
-
-import tomli
 
 
 def _get_project_meta() -> dict:
     toml_path = Path(__file__).parents[1].joinpath('pyproject.toml')
 
     with toml_path.open(mode='rb') as pyproject:
-        return tomli.load(pyproject)['tool']['poetry']
+        return tomllib.load(pyproject)['project']
 
 
-__version__ = _get_project_meta()['version']
+# Release tags are prefixed with `v` (e.g. `v1.5.2`), pyproject.toml holds the PEP 440 version
+__version__ = 'v' + _get_project_meta()['version']
